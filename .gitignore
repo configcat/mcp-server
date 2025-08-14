@@ -1,0 +1,8 @@
+node_modules/
+build/
+*.log
+.env
+.env.local
+.env.production
+.DS_Store
+*.tsbuildinfo
