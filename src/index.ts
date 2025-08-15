@@ -1,73 +1,37 @@
-#!/usr/bin/env node
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ErrorCode,
-  ListPromptsRequestSchema,
-  ListResourcesRequestSchema,
-  ListToolsRequestSchema,
-  McpError,
-  ReadResourceRequestSchema,
-  GetPromptRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
-import { ConfigCatClient } from './configcat-client.js';
+import { McpServer, ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import { HttpClient } from "./http.js";
+import { registerProductsTools } from "./tools/products.js";
+import { registerOrganizationsTools } from "./tools/organizations.js";
+import { registerConfigsTools } from "./tools/configs.js";
 
-const server = new Server(
+const baseUrl: string = process.env.CONFIGCAT_BASE_URL || "https://api.configcat.com";
+const username: string = process.env.CONFIGCAT_USERNAME || process.env.CONFIGCAT_PUBLIC_API_USERNAME || "";
+const password: string = process.env.CONFIGCAT_PASSWORD || process.env.CONFIGCAT_PUBLIC_API_PASSWORD || "";
+
+const http = new HttpClient({ baseUrl, username, password, userAgent: "configcat-mcp/0.1.0" });
+
+const server = new McpServer(
   {
-    name: 'configcat-mcp',
-    version: '1.0.0',
-  },
-  {
-    capabilities: {
-      resources: {},
-      tools: {},
-      prompts: {},
-    },
+    name: "ConfigCat MCP",
+    version: "0.1.0"
   }
 );
 
-const configCatClient = new ConfigCatClient();
-
-server.setRequestHandler(ListResourcesRequestSchema, async () => {
-  return {
-    resources: await configCatClient.getResources(),
-  };
-});
-
-server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-  const { uri } = request.params;
-  return await configCatClient.readResource(uri);
-});
-
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: configCatClient.getTools(),
-  };
-});
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-  return await configCatClient.callTool(name, args || {});
-});
-
-server.setRequestHandler(ListPromptsRequestSchema, async () => {
-  return {
-    prompts: configCatClient.getPrompts(),
-  };
-});
-
-server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-  return await configCatClient.getPrompt(name, args);
-});
+registerOrganizationsTools(server, http);
+registerProductsTools(server, http);
+registerConfigsTools(server, http);
 
 async function main() {
+  if (!username || !password) {
+    throw new Error("Please set CONFIGCAT_USERNAME and CONFIGCAT_PASSWORD environment variables (Public API credentials)");
+  }
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
 
-main().catch((error) => {
-  console.error('Server error:', error);
+main().catch(err => {
+  console.error(err);
   process.exit(1);
 });

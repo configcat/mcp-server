@@ -1,23 +1,23 @@
 {
   "name": "configcat-mcp",
-  "version": "1.0.0",
-  "description": "MCP server for ConfigCat public API management",
-  "main": "build/index.js",
+  "version": "0.1.0",
+  "private": true,
   "type": "module",
+  "description": "MCP server exposing ConfigCat Public Management API (products, configs, environments, values v1/v2).",
+  "engines": {
+    "node": ">=18.18"
+  },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "start": "node build/index.js"
+    "build": "tsc -p .",
+  "start": "node build/index.js",
+  "dev": "npm run build -- --watch"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "node-fetch": "^3.3.2"
+    "@modelcontextprotocol/sdk": "^1.2.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "typescript": "^5.0.0"
-  },
-  "keywords": ["mcp", "configcat", "feature-flags"],
-  "author": "",
-  "license": "MIT"
+    "@types/node": "^22.7.4",
+    "typescript": "^5.5.4"
+  }
 }
