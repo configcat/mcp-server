@@ -5,6 +5,7 @@ import { HttpClient } from "./http.js";
 import { registerProductsTools } from "./tools/products.js";
 import { registerOrganizationsTools } from "./tools/organizations.js";
 import { registerConfigsTools } from "./tools/configs.js";
+import { registerFeatureFlagsTools } from "./tools/featureFlags.js";
 
 const baseUrl: string = process.env.CONFIGCAT_BASE_URL || "https://api.configcat.com";
 const username: string = process.env.CONFIGCAT_USERNAME || process.env.CONFIGCAT_PUBLIC_API_USERNAME || "";
@@ -22,6 +23,7 @@ const server = new McpServer(
 registerOrganizationsTools(server, http);
 registerProductsTools(server, http);
 registerConfigsTools(server, http);
+registerFeatureFlagsTools(server, http);
 
 async function main() {
   if (!username || !password) {
