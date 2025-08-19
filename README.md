@@ -1,18 +1,10 @@
 # ConfigCat MCP Server
 
-A Model Context Protocol (MCP) server that provides access to ConfigCat's public management API for feature flag and configuration management.
+A Model Context Protocol (MCP) server that provides access to [ConfigCat's public management API](https://api.configcat.com/docs/) for feature flag and configuration management.
 
 ## Features
 
-- **Resources**: Access ConfigCat products and configurations as MCP resources
-- **Tools**: Complete set of tools for ConfigCat API operations including:
-  - List products, configs, environments
-  - Manage feature flags (create, read, update, delete)
-  - Get detailed information about configurations
-- **Prompts**: Interactive prompts for feature flag management including:
-  - Feature flag creation wizard
-  - Best practices guidance
-  - Troubleshooting assistance
+- **Tools**: Complete set of tools for ConfigCat's public management API operations. You can Create, Read, Update and Delete any entities like Feature Flags, Configs, Environments or Products within ConfigCat.
 
 ## Setup
 
@@ -28,8 +20,8 @@ npm run build
 
 3. Set up your ConfigCat API credentials as environment variables:
 ```bash
-export CONFIGCAT_USERNAME="your-username"
-export CONFIGCAT_PASSWORD="your-password"
+export CONFIGCAT_API_USER="your-username"
+export CONFIGCAT_API_PASS="your-password"
 ```
 
 You can get your API credentials from your ConfigCat account management page.
