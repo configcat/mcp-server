@@ -45,8 +45,8 @@ Add this server to your MCP client configuration:
       "command": "node",
       "args": ["path/to/configcat-mcp/build/index.js"],
       "env": {
-        "CONFIGCAT_USERNAME": "your-username",
-        "CONFIGCAT_PASSWORD": "your-password"
+        "CONFIGCAT_API_USER": "your-username",
+        "CONFIGCAT_API_PASS": "your-password"
       }
     }
   }
@@ -55,9 +55,14 @@ Add this server to your MCP client configuration:
 
 ## Available Tools
 
-### Organization/Membership Management
+### Membership Management
+
+#### Organizations
 
 - `list-organizations` - List all organizations
+
+#### Members
+
 - `list-organization-members` - List organization members
 - `list-organization-members-v2` - List organization members (v2)
 - `list-pending-invitations` - List pending invitations
@@ -68,6 +73,9 @@ Add this server to your MCP client configuration:
 - `delete-organization-member` - Remove organization member
 - `delete-product-member` - Remove product member
 - `delete-invitation` - Cancel invitation
+
+#### Permission Groups
+
 - `list-permission-groups` - List permission groups
 - `create-permission-group` - Create a new permission group
 - `get-permission-group` - Get permission group details
@@ -75,6 +83,8 @@ Add this server to your MCP client configuration:
 - `delete-permission-group` - Delete permission group
 
 ### General
+
+#### Products
 
 - `list-products` - List all products
 - `get-product` - Get specific product details
@@ -84,11 +94,15 @@ Add this server to your MCP client configuration:
 - `update-product-preferences` - Update product preferences
 - `create-product` - Create a new product
 
+#### Configs
+
 - `list-configs` - List configs for a product
 - `create-config` - Create a new config
 - `get-config` - Get specific config details
 - `update-config` - Update existing config
 - `delete-config` - Delete a config
+
+#### Environments
 
 - `list-environments` - List environments for a product
 - `create-environment` - Create a new environment
@@ -96,13 +110,19 @@ Add this server to your MCP client configuration:
 - `update-environment` - Update existing environment
 - `delete-environment` - Delete an environment
 
+#### Segments
+
 - `list-segments` - List user segments
 - `create-segment` - Create a new segment
 - `get-segment` - Get specific segment details
 - `update-segment` - Update existing segment
 - `delete-segment` - Delete a segment
 
+#### SDK Keys
+
 - `get-sdk-keys` - Get SDK keys for config/environment
+
+#### Webhooks
 
 - `list-webhooks` - List webhooks
 - `get-webhook` - Get webhook details
@@ -112,26 +132,35 @@ Add this server to your MCP client configuration:
 - `get-webhook-signing-keys` - List webhook signing keys
 - `create-webhook` - Create a new webhook
 
+#### Integrations
+
 - `list-integrations` - List integrations
 - `create-integration` - Create a new integration
 - `get-integration` - Get integration details
 - `update-integration` - Update existing integration
 - `delete-integration` - Delete an integration
 
+#### Code References
+
 - `GetV1SettingsCodeReferences` - Get code references
 - `PostV1CodeReferencesDeleteReports` - Delete Code Reference reports
 - `PostV1CodeReferences` - Upload code references
 
-
 ### Diagnostics
+
+#### Audit logs
 
 - `list-auditlogs` - Get product audit logs
 - `list-organization-auditlogs` - Get organization audit logs
 - `list-deleted-settings` - List deleted feature flags and Settings
 
+#### Zombie (stale) flags
+
 - `list-staleflags` - Get stale feature flags report
 
 ### Feature Flag metadata
+
+#### Feature Flags & Settings
 
 - `list-settings` - List feature flags for a config
 - `create-setting` - Create a new feature flag
@@ -140,6 +169,8 @@ Add this server to your MCP client configuration:
 - `update-setting` - Update existing feature flag
 - `delete-setting` - Delete a feature flag
 
+#### Tags
+
 - `list-tags` - List tags for a product
 - `create-tag` - Create a new tag
 - `list-settings-by-tag` - Get feature flags by tag
@@ -147,7 +178,7 @@ Add this server to your MCP client configuration:
 - `update-tag` - Update existing tag
 - `delete-tag` - Delete a tag
 
-### Feature Flag Values (v1 & v2 APIs)
+### Feature Flag & Setting Values (v1 & v2 APIs)
 
 - `get-setting-value` - Get feature flag value
 - `update-setting-value` - Update feature flag value
