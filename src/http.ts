@@ -17,7 +17,7 @@ export class HttpClient {
     this.baseUrl = opts.baseUrl.replace(/\/$/, "");
     const encoded = Buffer.from(`${opts.username}:${opts.password}`).toString("base64");
     this.authHeader = `Basic ${encoded}`;
-    this.userAgent = opts.userAgent ?? "configcat-mcp/0.1.0";
+    this.userAgent = opts.userAgent ?? "";
   }
 
   async request(path: string, init: RequestInit = {}) {
@@ -42,10 +42,6 @@ export class HttpClient {
       throw new Error(`HTTP ${res.status} ${res.statusText} for ${url} - ${text} - rate: ${JSON.stringify(rate)}`);
     }
 
-    const ct = res.headers.get("content-type") || "";
-    if (ct.includes("application/json")) {
-      return (await res.json());
-    }
-    return (await res.text());
+    return res;
   }
 }
