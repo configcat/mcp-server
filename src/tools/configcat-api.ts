@@ -26,24 +26,24 @@ interface McpToolDefinition {
 
 // Map of tool definitions by name
 const toolDefinitionMap: Map<string, McpToolDefinition> = new Map([
-  ["get-organizations", {
-    name: "get-organizations",
+  ["list-organizations", {
+    name: "list-organizations",
     description: `This endpoint returns the list of the Organizations that belongs to the user.`,
     inputSchema: {"type":"object","properties":{}},
     method: "get",
     pathTemplate: "/v1/organizations",
     executionParameters: [],
   }],
-  ["get-products", {
-    name: "get-products",
+  ["list-products", {
+    name: "list-products",
     description: `This endpoint returns the list of the Products that belongs to the user.`,
     inputSchema: {"type":"object","properties":{}},
     method: "get",
     pathTemplate: "/v1/products",
     executionParameters: [],
   }],
-  ["get-tags", {
-    name: "get-tags",
+  ["list-tags", {
+    name: "list-tags",
     description: `This endpoint returns the list of the Tags in a 
 specified Product, identified by the \`productId\` parameter.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
@@ -54,25 +54,25 @@ specified Product, identified by the \`productId\` parameter.`,
   ["create-tag", {
     name: "create-tag",
     description: `This endpoint creates a new Tag in a specified Product 
-identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Organization."},"requestBody":{"required":["name"],"type":"object","properties":{"name":{"maxLength":255,"minLength":1,"type":"string","description":"Name of the Tag."},"color":{"maxLength":255,"minLength":0,"type":["string","null"],"description":"Color of the Tag. Possible values: `panther`, `whale`, `salmon`, `lizard`, `canary`, `koala`, or any HTML color code."}},"description":"The JSON request body."}},"required":["productId","requestBody"]},
     method: "post",
     pathTemplate: "/v1/products/{productId}/tags",
     executionParameters: [{"name":"productId","in":"path"}],
   }],
-  ["get-webhooks", {
-    name: "get-webhooks",
+  ["list-webhooks", {
+    name: "list-webhooks",
     description: `This endpoint returns the list of the Webhooks that belongs to the given Product identified by the
-\`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+\`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
     method: "get",
     pathTemplate: "/v1/products/{productId}/webhooks",
     executionParameters: [{"name":"productId","in":"path"}],
   }],
-  ["get-configs", {
-    name: "get-configs",
+  ["list-configs", {
+    name: "list-configs",
     description: `This endpoint returns the list of the Configs that belongs to the given Product identified by the
-\`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+\`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
     method: "get",
     pathTemplate: "/v1/products/{productId}/configs",
@@ -81,16 +81,16 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
   ["create-config", {
     name: "create-config",
     description: `This endpoint creates a new Config in a specified Product 
-identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."},"requestBody":{"required":["name"],"type":"object","properties":{"name":{"maxLength":255,"minLength":1,"type":"string","description":"The name of the Config."},"description":{"maxLength":1000,"minLength":0,"type":["string","null"],"description":"The description of the Config."},"order":{"type":["number","null"],"description":"The order of the Config represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.","format":"int32"},"evaluationVersion":{"enum":["v1","v2"],"type":"string","description":"Determines the evaluation version of a Config.\nUsing `v2` enables the new features of Config V2 (https://configcat.com/docs/advanced/config-v2)."}},"description":"The JSON request body."}},"required":["productId","requestBody"]},
     method: "post",
     pathTemplate: "/v1/products/{productId}/configs",
     executionParameters: [{"name":"productId","in":"path"}],
   }],
-  ["get-environments", {
-    name: "get-environments",
+  ["list-environments", {
+    name: "list-environments",
     description: `This endpoint returns the list of the Environments that belongs to the given Product identified by the
-\`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+\`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
     method: "get",
     pathTemplate: "/v1/products/{productId}/environments",
@@ -99,16 +99,16 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
   ["create-environment", {
     name: "create-environment",
     description: `This endpoint creates a new Environment in a specified Product 
-identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."},"requestBody":{"required":["name"],"type":"object","properties":{"name":{"maxLength":255,"minLength":1,"type":"string","description":"The name of the Environment."},"color":{"maxLength":255,"minLength":0,"type":["string","null"],"description":"The color of the Environment. RGB or HTML color codes are allowed."},"description":{"maxLength":1000,"minLength":0,"type":["string","null"],"description":"The description of the Environment."},"order":{"type":["number","null"],"description":"The order of the Environment represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.","format":"int32"}},"description":"The JSON request body."}},"required":["productId","requestBody"]},
     method: "post",
     pathTemplate: "/v1/products/{productId}/environments",
     executionParameters: [{"name":"productId","in":"path"}],
   }],
-  ["get-permission-groups", {
-    name: "get-permission-groups",
+  ["list-permission-groups", {
+    name: "list-permission-groups",
     description: `This endpoint returns the list of the Permission Groups that belongs to the given Product identified by the
-\`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+\`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
     method: "get",
     pathTemplate: "/v1/products/{productId}/permissions",
@@ -117,16 +117,16 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
   ["create-permission-group", {
     name: "create-permission-group",
     description: `This endpoint creates a new Permission Group in a specified Product 
-identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."},"requestBody":{"required":["name"],"type":"object","properties":{"name":{"maxLength":255,"minLength":1,"type":"string","description":"Name of the Permission Group."},"canManageMembers":{"type":"boolean","description":"Group members can manage team members."},"canCreateOrUpdateConfig":{"type":"boolean","description":"Group members can create/update Configs."},"canDeleteConfig":{"type":"boolean","description":"Group members can delete Configs."},"canCreateOrUpdateEnvironment":{"type":"boolean","description":"Group members can create/update Environments."},"canDeleteEnvironment":{"type":"boolean","description":"Group members can delete Environments."},"canCreateOrUpdateSetting":{"type":"boolean","description":"Group members can create/update Feature Flags and Settings."},"canTagSetting":{"type":"boolean","description":"Group members can attach/detach Tags to Feature Flags and Settings."},"canDeleteSetting":{"type":"boolean","description":"Group members can delete Feature Flags and Settings."},"canCreateOrUpdateTag":{"type":"boolean","description":"Group members can create/update Tags."},"canDeleteTag":{"type":"boolean","description":"Group members can delete Tags."},"canManageWebhook":{"type":"boolean","description":"Group members can create/update/delete Webhooks."},"canUseExportImport":{"type":"boolean","description":"Group members can use the export/import feature."},"canManageProductPreferences":{"type":"boolean","description":"Group members can update Product preferences."},"canManageIntegrations":{"type":"boolean","description":"Group members can add and configure integrations."},"canViewSdkKey":{"type":"boolean","description":"Group members has access to SDK keys."},"canRotateSdkKey":{"type":"boolean","description":"Group members can rotate SDK keys."},"canCreateOrUpdateSegments":{"type":"boolean","description":"Group members can create/update Segments."},"canDeleteSegments":{"type":"boolean","description":"Group members can delete Segments."},"canViewProductAuditLog":{"type":"boolean","description":"Group members has access to audit logs."},"canViewProductStatistics":{"type":"boolean","description":"Group members has access to product statistics."},"accessType":{"enum":["readOnly","full","custom"],"type":"string","description":"Represent the Feature Management permission."},"newEnvironmentAccessType":{"enum":["full","readOnly","none"],"type":"string","description":"Represent the environment specific Feature Management permission."},"environmentAccesses":{"type":["array","null"],"items":{"type":"object","properties":{"environmentId":{"type":"string","description":"Identifier of the Environment.","format":"uuid"},"environmentAccessType":{"enum":["full","readOnly","none"],"type":"string","description":"Represent the environment specific Feature Management permission."}}},"description":"List of environment specific permissions."},"canDisable2FA":{"type":"boolean","description":"Group members can disable two-factor authentication for other members."}},"description":"The JSON request body."}},"required":["productId","requestBody"]},
     method: "post",
     pathTemplate: "/v1/products/{productId}/permissions",
     executionParameters: [{"name":"productId","in":"path"}],
   }],
-  ["get-integrations", {
-    name: "get-integrations",
+  ["list-integrations", {
+    name: "list-integrations",
     description: `This endpoint returns the list of the Integrations that belongs to the given Product identified by the
-\`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+\`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
     method: "get",
     pathTemplate: "/v1/products/{productId}/integrations",
@@ -135,7 +135,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
   ["create-integration", {
     name: "create-integration",
     description: `This endpoint creates a new Integration in a specified Product 
-identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.
+identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.
 
 The Parameters dictionary differs for each IntegrationType:
 - Datadog
@@ -161,10 +161,10 @@ The Parameters dictionary differs for each IntegrationType:
     pathTemplate: "/v1/products/{productId}/integrations",
     executionParameters: [{"name":"productId","in":"path"}],
   }],
-  ["get-segments", {
-    name: "get-segments",
+  ["list-segments", {
+    name: "list-segments",
     description: `This endpoint returns the list of the Segments that belongs to the given Product identified by the
-\`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+\`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
     method: "get",
     pathTemplate: "/v1/products/{productId}/segments",
@@ -173,14 +173,14 @@ The Parameters dictionary differs for each IntegrationType:
   ["create-segment", {
     name: "create-segment",
     description: `This endpoint creates a new Segment in a specified Product 
-identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."},"requestBody":{"required":["comparator","comparisonAttribute","comparisonValue","name"],"type":"object","properties":{"name":{"maxLength":255,"minLength":1,"type":"string","description":"Name of the Segment."},"description":{"maxLength":1000,"minLength":0,"type":["string","null"],"description":"Description of the Segment."},"comparisonAttribute":{"maxLength":1000,"minLength":1,"type":"string","description":"The user's attribute the evaluation process must take into account."},"comparator":{"enum":["isOneOf","isNotOneOf","contains","doesNotContain","semVerIsOneOf","semVerIsNotOneOf","semVerLess","semVerLessOrEquals","semVerGreater","semVerGreaterOrEquals","numberEquals","numberDoesNotEqual","numberLess","numberLessOrEquals","numberGreater","numberGreaterOrEquals","sensitiveIsOneOf","sensitiveIsNotOneOf"],"type":"string","description":"The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value."},"comparisonValue":{"minLength":1,"type":"string","description":"The value to compare with the given user attribute's value."}},"description":"The JSON request body."}},"required":["productId","requestBody"]},
     method: "post",
     pathTemplate: "/v1/products/{productId}/segments",
     executionParameters: [{"name":"productId","in":"path"}],
   }],
-  ["get-settings", {
-    name: "get-settings",
+  ["list-settings", {
+    name: "list-settings",
     description: `This endpoint returns the list of the Feature Flags and Settings defined in a 
 specified Config, identified by the \`configId\` parameter.`,
     inputSchema: {"type":"object","properties":{"configId":{"type":"string","format":"uuid","description":"The identifier of the Config."}},"required":["configId"]},
@@ -199,8 +199,8 @@ identified by the \`configId\` parameter.
     pathTemplate: "/v1/configs/{configId}/settings",
     executionParameters: [{"name":"configId","in":"path"}],
   }],
-  ["get-auditlogs", {
-    name: "get-auditlogs",
+  ["list-auditlogs", {
+    name: "list-auditlogs",
     description: `This endpoint returns the list of Audit log items for a given Product 
 and the result can be optionally filtered by Config and/or Environment.
 
@@ -212,8 +212,8 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
     pathTemplate: "/v1/products/{productId}/auditlogs",
     executionParameters: [{"name":"productId","in":"path"},{"name":"configId","in":"query"},{"name":"environmentId","in":"query"},{"name":"auditLogType","in":"query"},{"name":"fromUtcDateTime","in":"query"},{"name":"toUtcDateTime","in":"query"}],
   }],
-  ["get-staleflags", {
-    name: "get-staleflags",
+  ["list-staleflags", {
+    name: "list-staleflags",
     description: `This endpoint returns the list of Zombie (stale) flags for a given Product 
 and the result can be optionally filtered by various parameters.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."},"scope":{"enum":["all","watchedByMe"],"type":"string","description":"The scope of the report."},"staleFlagAgeDays":{"maximum":90,"minimum":7,"type":"number","format":"int32","description":"The inactivity in days after a feature flag should be considered stale."},"staleFlagStaleInEnvironmentsType":{"enum":["staleInAnyEnvironments","staleInAllEnvironments"],"type":"string","description":"Consider a feature flag as stale if the feature flag is stale in all/any of the environments."},"ignoredEnvironmentIds":{"type":"array","items":{"type":"string","format":"uuid"},"description":"Ignore environment identifiers from the report."},"ignoredTagIds":{"type":"array","items":{"type":"number","format":"int64"},"description":"Ignore feature flags from the report based on their tag identifiers."}},"required":["productId"]},
@@ -254,8 +254,8 @@ identified by the \`configId\`.`,
     pathTemplate: "/v1/configs/{configId}",
     executionParameters: [{"name":"configId","in":"path"}],
   }],
-  ["get-deleted-settings", {
-    name: "get-deleted-settings",
+  ["list-deleted-settings", {
+    name: "list-deleted-settings",
     description: `This endpoint returns the list of Feature Flags and Settings that were deleted from the given Config.`,
     inputSchema: {"type":"object","properties":{"configId":{"type":"string","format":"uuid","description":"The identifier of the Config."}},"required":["configId"]},
     method: "get",
@@ -383,8 +383,8 @@ The Parameters dictionary differs for each IntegrationType:
     pathTemplate: "/v1/me",
     executionParameters: [],
   }],
-  ["get-organization-auditlogs", {
-    name: "get-organization-auditlogs",
+  ["list-organization-auditlogs", {
+    name: "list-organization-auditlogs",
     description: `This endpoint returns the list of Audit log items for a given Organization 
 and the result can be optionally filtered by Product and/or Config and/or Environment.
 
@@ -396,8 +396,8 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
     pathTemplate: "/v1/organizations/{organizationId}/auditlogs",
     executionParameters: [{"name":"organizationId","in":"path"},{"name":"productId","in":"query"},{"name":"configId","in":"query"},{"name":"environmentId","in":"query"},{"name":"auditLogType","in":"query"},{"name":"fromUtcDateTime","in":"query"},{"name":"toUtcDateTime","in":"query"}],
   }],
-  ["get-organization-members", {
-    name: "get-organization-members",
+  ["list-organization-members", {
+    name: "list-organization-members",
     description: `This endpoint returns the list of Members that belongs 
 to the given Organization, identified by the \`organizationId\` parameter.
 
@@ -410,8 +410,8 @@ The results may vary based on the access level of the user who calls the endpoin
     pathTemplate: "/v1/organizations/{organizationId}/members",
     executionParameters: [{"name":"organizationId","in":"path"}],
   }],
-  ["get-organization-members-v2", {
-    name: "get-organization-members-v2",
+  ["list-organization-members-v2", {
+    name: "list-organization-members-v2",
     description: `This endpoint returns the list of Members that belongs 
 to the given Organization, identified by the \`organizationId\` parameter.
 
@@ -424,8 +424,8 @@ The results may vary based on the access level of the user who calls the endpoin
     pathTemplate: "/v2/organizations/{organizationId}/members",
     executionParameters: [{"name":"organizationId","in":"path"}],
   }],
-  ["get-pending-invitations-org", {
-    name: "get-pending-invitations-org",
+  ["list-pending-invitations-org", {
+    name: "list-pending-invitations-org",
     description: `This endpoint returns the list of pending invitations within the
 given Organization identified by the \`organizationId\` parameter.`,
     inputSchema: {"type":"object","properties":{"organizationId":{"type":"string","format":"uuid","description":"The identifier of the Organization."}},"required":["organizationId"]},
@@ -433,8 +433,8 @@ given Organization identified by the \`organizationId\` parameter.`,
     pathTemplate: "/v1/organizations/{organizationId}/invitations",
     executionParameters: [{"name":"organizationId","in":"path"}],
   }],
-  ["get-pending-invitations", {
-    name: "get-pending-invitations",
+  ["list-pending-invitations", {
+    name: "list-pending-invitations",
     description: `This endpoint returns the list of pending invitations within the
 given Product identified by the \`productId\` parameter.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
@@ -467,8 +467,8 @@ identified by the \`productId\`.`,
     pathTemplate: "/v1/products/{productId}",
     executionParameters: [{"name":"productId","in":"path"}],
   }],
-  ["get-product-members", {
-    name: "get-product-members",
+  ["list-product-members", {
+    name: "list-product-members",
     description: `This endpoint returns the list of Members that belongs 
 to the given Product, identified by the \`productId\` parameter.`,
     inputSchema: {"type":"object","properties":{"productId":{"type":"string","format":"uuid","description":"The identifier of the Product."}},"required":["productId"]},
@@ -554,7 +554,7 @@ identified by the \`configId\` parameter.`,
 with a collection of [JSON Patch](https://jsonpatch.com) operations in a specified Config.
 
 Only the \`name\`, \`hint\` and \`tags\` attributes are modifiable by this endpoint.
-The \`tags\` attribute is a simple collection of the [tag IDs](#operation/get-tags) attached to the given setting.
+The \`tags\` attribute is a simple collection of the [tag IDs](#operation/list-tags) attached to the given setting.
 
 The advantage of using JSON Patch is that you can describe individual update operations on a resource
 without touching attributes that you don't want to change.
@@ -619,8 +619,8 @@ So we get a response like this:
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{"name":"settingId","in":"path"}],
   }],
-  ["get-settings-by-tag", {
-    name: "get-settings-by-tag",
+  ["list-settings-by-tag", {
+    name: "list-settings-by-tag",
     description: `This endpoint returns the list of the Settings that 
 has the specified Tag, identified by the \`tagId\` parameter.`,
     inputSchema: {"type":"object","properties":{"tagId":{"type":"number","format":"int64","description":"The identifier of the Tag."}},"required":["tagId"]},
@@ -1557,7 +1557,7 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
   ["create-product", {
     name: "create-product",
     description: `This endpoint creates a new Product in a specified Organization 
-identified by the \`organizationId\` parameter, which can be obtained from the [List Organizations](#operation/get-organizations) endpoint.`,
+identified by the \`organizationId\` parameter, which can be obtained from the [List Organizations](#operation/list-organizations) endpoint.`,
     inputSchema: {"type":"object","properties":{"organizationId":{"type":"string","format":"uuid","description":"The identifier of the Organization."},"requestBody":{"required":["name"],"type":"object","properties":{"name":{"maxLength":1000,"minLength":1,"type":"string","description":"The name of the Product."},"description":{"maxLength":1000,"minLength":0,"type":["string","null"],"description":"The description of the Product."},"order":{"type":["number","null"],"description":"The order of the Product represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.","format":"int32"}},"description":"The JSON request body."}},"required":["organizationId","requestBody"]},
     method: "post",
     pathTemplate: "/v1/organizations/{organizationId}/products",
@@ -1566,7 +1566,7 @@ identified by the \`organizationId\` parameter, which can be obtained from the [
   ["create-webhook", {
     name: "create-webhook",
     description: `This endpoint creates a new Webhook in a specified Product
-identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/get-products) endpoint.`,
+identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
     inputSchema: {"type":"object","properties":{"configId":{"type":"string","format":"uuid","description":"The identifier of the Config."},"environmentId":{"type":"string","format":"uuid","description":"The identifier of the Environment."},"requestBody":{"required":["url"],"type":"object","properties":{"url":{"maxLength":1000,"minLength":7,"type":"string","description":"The URL of the Webhook."},"content":{"maxLength":15000,"minLength":0,"type":["string","null"],"description":"The HTTP body content."},"httpMethod":{"allOf":[{"enum":["get","post"],"type":"string"}],"type":"null"},"webHookHeaders":{"type":["array","null"],"items":{"required":["key","value"],"type":"object","properties":{"key":{"maxLength":255,"minLength":1,"type":"string","description":"The HTTP header key."},"value":{"maxLength":1000,"minLength":1,"type":"string","description":"The HTTP header value."},"isSecure":{"type":"boolean","description":"Indicates whether the header value is sensitive."}}},"description":"List of HTTP headers."}},"description":"The JSON request body."}},"required":["configId","environmentId","requestBody"]},
     method: "post",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}/webhooks",
@@ -1596,8 +1596,8 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     pathTemplate: "/v1/code-references",
     executionParameters: [],
   }],
-  ["add-member-to-group", {
-    name: "add-member-to-group",
+  ["update-member-permissions", {
+    name: "update-member-permissions",
     description: `This endpoint updates the permissions of a Member identified by the \`userId\`. 
 This endpoint can also be used to move a Member between Permission Groups within a Product.
 Only a single Permission Group can be set per Product.`,
