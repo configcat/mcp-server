@@ -3,18 +3,18 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { HttpClient } from "./http.js";
 import { registerConfigCatAPITools } from "./tools/configcat-api.js";
 
-const baseUrl: string = process.env.CONFIGCAT_BASE_URL || "https://api.configcat.com";
-const username: string = process.env.CONFIGCAT_API_USER || "";
-const password: string = process.env.CONFIGCAT_API_PASS || "";
+const baseUrl: string = process.env.CONFIGCAT_BASE_URL ?? "https://api.configcat.com";
+const username: string = process.env.CONFIGCAT_API_USER ?? "";
+const password: string = process.env.CONFIGCAT_API_PASS ?? "";
 
-const serverName: string = "ConfigCat MCP";
-const serverVersion: string = "0.1.0";
+const serverName = "ConfigCat MCP";
+const serverVersion = "0.1.0";
 
 const http = new HttpClient({ baseUrl, username, password, userAgent: `${serverName}/${serverVersion}` });
 
 const server = new Server(
-  { name: serverName, version: serverVersion},
-  { capabilities: { tools: {} }}
+  { name: serverName, version: serverVersion },
+  { capabilities: { tools: {} } }
 );
 
 registerConfigCatAPITools(server, http);
@@ -27,7 +27,7 @@ async function main() {
   await server.connect(transport);
 }
 
-main().catch(err => {
+main().catch((err: unknown) => {
   console.error(err);
   process.exit(1);
 });

@@ -20,17 +20,25 @@ export class HttpClient {
     this.userAgent = opts.userAgent ?? "";
   }
 
-  async request(path: string, init: RequestInit = {}) {
+  async request(path: string, init: RequestInit = {}): Promise<Response> {
     const url = path.startsWith("http") ? path : `${this.baseUrl}${path}`;
+    const headers = new Headers();
+    headers.set("Authorization", this.authHeader);
+    headers.set("Accept", "application/json");
+    headers.set("Content-Type", "application/json");
+    headers.set("User-Agent", this.userAgent);
+
+    // Add any additional headers from init
+    if (init.headers) {
+      const additionalHeaders = new Headers(init.headers);
+      for (const [key, value] of additionalHeaders.entries()) {
+        headers.set(key, value);
+      }
+    }
+
     const res = await fetch(url, {
       ...init,
-      headers: {
-        "Authorization": this.authHeader,
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "User-Agent": this.userAgent,
-        ...(init.headers || {}),
-      },
+      headers,
     });
 
     if (!res.ok) {
