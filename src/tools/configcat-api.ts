@@ -1642,8 +1642,8 @@ given Product identified by the \`productId\` parameter.`,
 export function registerConfigCatAPITools(
   server: Server,
   http: HttpClient
-) {
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
+): void {
+  server.setRequestHandler(ListToolsRequestSchema, () => {
     const toolsForClient: Tool[] = Array.from(toolDefinitionMap.values()).map(def => ({
       name: def.name,
       description: def.description,
