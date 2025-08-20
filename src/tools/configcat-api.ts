@@ -1721,8 +1721,8 @@ async function executeApiTool(
     }
 
     // Handle request body if needed
-    if (typeof validatedArgs['requestBody'] !== 'undefined') {
-        requestBodyData = validatedArgs['requestBody'];
+    if (typeof validatedArgs["requestBody"] !== "undefined") {
+      requestBodyData = validatedArgs["requestBody"];
     }
 
     const method = definition.method.toUpperCase();
