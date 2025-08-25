@@ -253,14 +253,6 @@ identified by the \`configId\`.`,
     pathTemplate: "/v1/configs/{configId}",
     executionParameters: [{ "name": "configId", "in": "path" }],
   }],
-  ["list-deleted-settings", {
-    name: "list-deleted-settings",
-    description: "This endpoint returns the list of Feature Flags and Settings that were deleted from the given Config.",
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." } }, "required": ["configId"] },
-    method: "get",
-    pathTemplate: "/v1/configs/{configId}/deleted-settings",
-    executionParameters: [{ "name": "configId", "in": "path" }],
-  }],
   ["get-environment", {
     name: "get-environment",
     description: `This endpoint returns the metadata of an Environment 
@@ -358,14 +350,6 @@ The Parameters dictionary differs for each IntegrationType:
     pathTemplate: "/v1/integrations/{integrationId}",
     executionParameters: [{ "name": "integrationId", "in": "path" }],
   }],
-  ["get-integration-link-details", {
-    name: "get-integration-link-details",
-    description: "Get Integration link",
-    inputSchema: { "type": "object", "properties": { "integrationLinkType": { "enum": ["trello", "jira", "monday"], "type": "string", "description": "The integration link's type." }, "key": { "type": "string", "description": "The key of the integration link." } }, "required": ["integrationLinkType", "key"] },
-    method: "get",
-    pathTemplate: "/v1/integrationLink/{integrationLinkType}/{key}/details",
-    executionParameters: [{ "name": "integrationLinkType", "in": "path" }, { "name": "key", "in": "path" }],
-  }],
   ["get-sdk-keys", {
     name: "get-sdk-keys",
     description: "This endpoint returns the SDK Key for your Config in a specified Environment.",
@@ -373,14 +357,6 @@ The Parameters dictionary differs for each IntegrationType:
     method: "get",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
-  }],
-  ["get-me", {
-    name: "get-me",
-    description: "Get authenticated user details",
-    inputSchema: { "type": "object", "properties": {} },
-    method: "get",
-    pathTemplate: "/v1/me",
-    executionParameters: [],
   }],
   ["list-organization-auditlogs", {
     name: "list-organization-auditlogs",
@@ -397,20 +373,6 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
   }],
   ["list-organization-members", {
     name: "list-organization-members",
-    description: `This endpoint returns the list of Members that belongs 
-to the given Organization, identified by the \`organizationId\` parameter.
-
-The results may vary based on the access level of the user who calls the endpoint: 
-- When it's called with Organization Admin privileges, the result will contain each member in the Organization.
-- When it's called without Organization Admin privileges, the result will contain each Organization Admin along with members 
-  of those products where the caller has \`Team members and permission groups\` (\`canManageMembers\`) permission.`,
-    inputSchema: { "type": "object", "properties": { "organizationId": { "type": "string", "format": "uuid", "description": "The identifier of the Organization." } }, "required": ["organizationId"] },
-    method: "get",
-    pathTemplate: "/v1/organizations/{organizationId}/members",
-    executionParameters: [{ "name": "organizationId", "in": "path" }],
-  }],
-  ["list-organization-members-v2", {
-    name: "list-organization-members-v2",
     description: `This endpoint returns the list of Members that belongs 
 to the given Organization, identified by the \`organizationId\` parameter.
 
@@ -1521,38 +1483,6 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
     pathTemplate: "/v1/webhooks/{webhookId}/keys",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
   }],
-  ["add-or-update-integration-link", {
-    name: "add-or-update-integration-link",
-    description: "Add or update Integration link",
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." }, "integrationLinkType": { "enum": ["trello", "jira", "monday"], "type": "string", "description": "The integration link's type." }, "key": { "type": "string", "description": "The key of the integration link." }, "requestBody": { "type": "object", "properties": { "description": { "maxLength": 1000, "type": ["string", "null"] }, "url": { "maxLength": 1000, "type": ["string", "null"] } }, "description": "The JSON request body." } }, "required": ["environmentId", "settingId", "integrationLinkType", "key"] },
-    method: "post",
-    pathTemplate: "/v1/environments/{environmentId}/settings/{settingId}/integrationLinks/{integrationLinkType}/{key}",
-    executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "integrationLinkType", "in": "path" }, { "name": "key", "in": "path" }],
-  }],
-  ["delete-integration-link", {
-    name: "delete-integration-link",
-    description: "Delete Integration link",
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." }, "integrationLinkType": { "enum": ["trello", "jira", "monday"], "type": "string", "description": "The integration's type." }, "key": { "type": "string", "description": "The key of the integration link." } }, "required": ["environmentId", "settingId", "integrationLinkType", "key"] },
-    method: "delete",
-    pathTemplate: "/v1/environments/{environmentId}/settings/{settingId}/integrationLinks/{integrationLinkType}/{key}",
-    executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "integrationLinkType", "in": "path" }, { "name": "key", "in": "path" }],
-  }],
-  ["jira-add-or-update-integration-link", {
-    name: "jira-add-or-update-integration-link",
-    description: "Executes POST /v1/jira/environments/{environmentId}/settings/{settingId}/integrationLinks/{key}",
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." }, "key": { "type": "string", "description": "The key of the integration link." }, "requestBody": { "required": ["clientKey", "jiraJwtToken"], "type": "object", "properties": { "jiraJwtToken": { "maxLength": 15000, "minLength": 0, "type": "string" }, "clientKey": { "maxLength": 255, "minLength": 0, "type": "string" }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"] }, "url": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"] } }, "description": "The JSON request body." } }, "required": ["environmentId", "settingId", "key"] },
-    method: "post",
-    pathTemplate: "/v1/jira/environments/{environmentId}/settings/{settingId}/integrationLinks/{key}",
-    executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "key", "in": "path" }],
-  }],
-  ["jira-connect", {
-    name: "jira-connect",
-    description: "Executes POST /v1/jira/connect",
-    inputSchema: { "type": "object", "properties": { "requestBody": { "required": ["clientKey", "jiraJwtToken"], "type": "object", "properties": { "clientKey": { "maxLength": 255, "minLength": 0, "type": "string" }, "jiraJwtToken": { "maxLength": 15000, "minLength": 0, "type": "string" } }, "description": "The JSON request body." } } },
-    method: "post",
-    pathTemplate: "/v1/jira/connect",
-    executionParameters: [],
-  }],
   ["create-product", {
     name: "create-product",
     description: `This endpoint creates a new Product in a specified Organization 
@@ -1571,14 +1501,6 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}/webhooks",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
   }],
-  ["PostV1CodeReferencesDeleteReports", {
-    name: "PostV1CodeReferencesDeleteReports",
-    description: "Delete Reference reports",
-    inputSchema: { "type": "object", "properties": { "requestBody": { "required": ["configId", "repository"], "type": "object", "properties": { "configId": { "type": "string", "description": "The Config's identifier from where the reports should be deleted.", "format": "uuid" }, "repository": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The source control repository which's reports should be deleted." }, "branch": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "If it's set, only this branch's reports belonging to the given repository will be deleted." }, "settingId": { "type": ["number", "null"], "description": "If it's set, only this setting's reports belonging to the given repository will be deleted.", "format": "int32" } }, "description": "The JSON request body." } }, "required": ["requestBody"] },
-    method: "post",
-    pathTemplate: "/v1/code-references/delete-reports",
-    executionParameters: [],
-  }],
   ["invite-member", {
     name: "invite-member",
     description: "This endpoint invites a Member into the given Product identified by the `productId` parameter.",
@@ -1586,14 +1508,6 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     method: "post",
     pathTemplate: "/v1/products/{productId}/members/invite",
     executionParameters: [{ "name": "productId", "in": "path" }],
-  }],
-  ["PostV1CodeReferences", {
-    name: "PostV1CodeReferences",
-    description: "Upload References",
-    inputSchema: { "type": "object", "properties": { "requestBody": { "required": ["branch", "configId", "repository"], "type": "object", "properties": { "configId": { "type": "string", "description": "The Config's identifier the scanning was performed against.", "format": "uuid" }, "repository": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The source control repository that contains the scanned code. (Source of the repository selector on the ConfigCat Dashboard)" }, "branch": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The source control branch on where the scan was performed. (Source of the branch selector on the ConfigCat Dashboard)" }, "commitUrl": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The related commit's URL. (Appears on the ConfigCat Dashboard)" }, "commitHash": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "The related commit's hash. (Appears on the ConfigCat Dashboard)" }, "uploader": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "The scanning tool's name. (Appears on the ConfigCat Dashboard)" }, "activeBranches": { "type": "array", "items": { "type": "string" }, "description": "The currently active branches of the repository. Each previously uploaded report that belongs to a non-reported active branch is being deleted." }, "flagReferences": { "type": "array", "items": { "required": ["references", "settingId"], "type": "object", "properties": { "settingId": { "type": "number", "description": "The identifier of the Feature Flag or Setting the code reference belongs to.", "format": "int32" }, "references": { "type": "array", "items": { "required": ["file", "referenceLine"], "type": "object", "properties": { "file": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The file's name in where the code reference has been found. (Appears on the ConfigCat Dashboard)" }, "fileUrl": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The file's url. (Used to point to the file on the repository's website)" }, "preLines": { "type": "array", "items": { "required": ["lineNumber"], "type": "object", "properties": { "lineText": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The content of the reference line." }, "lineNumber": { "type": "number", "description": "The line number.", "format": "int32" } }, "description": "Determines a code reference line." }, "description": "The lines before the actual reference line." }, "postLines": { "type": "array", "items": { "required": ["lineNumber"], "type": "object", "properties": { "lineText": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The content of the reference line." }, "lineNumber": { "type": "number", "description": "The line number.", "format": "int32" } }, "description": "Determines a code reference line." }, "description": "The lines after the actual reference line." }, "referenceLine": { "required": ["lineNumber"], "type": "object", "properties": { "lineText": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The content of the reference line." }, "lineNumber": { "type": "number", "description": "The line number.", "format": "int32" } }, "description": "Determines a code reference line." } } }, "description": "The actual references to the given Feature Flag or Setting." } } }, "description": "The actual code reference collection." } }, "description": "The JSON request body." } }, "required": ["requestBody"] },
-    method: "post",
-    pathTemplate: "/v1/code-references",
-    executionParameters: [],
   }],
   ["update-member-permissions", {
     name: "update-member-permissions",

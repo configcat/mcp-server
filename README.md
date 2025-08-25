@@ -64,7 +64,6 @@ Add this server to your MCP client configuration:
 #### Members
 
 - `list-organization-members` - List organization members
-- `list-organization-members-v2` - List organization members (v2)
 - `list-pending-invitations` - List pending invitations
 - `list-pending-invitations-org` - List org pending invitations
 - `list-product-members` - List product members
@@ -143,8 +142,6 @@ Add this server to your MCP client configuration:
 #### Code References
 
 - `GetV1SettingsCodeReferences` - Get code references
-- `PostV1CodeReferencesDeleteReports` - Delete Code Reference reports
-- `PostV1CodeReferences` - Upload code references
 
 ### Diagnostics
 
@@ -152,7 +149,6 @@ Add this server to your MCP client configuration:
 
 - `list-auditlogs` - Get product audit logs
 - `list-organization-auditlogs` - Get organization audit logs
-- `list-deleted-settings` - List deleted feature flags and Settings
 
 #### Zombie (stale) flags
 
@@ -189,18 +185,6 @@ Add this server to your MCP client configuration:
 - `get-setting-values` - Get multiple setting values
 - `post-setting-values` - Update multiple setting values
 - V2 variants: `*-v2` versions of above tools for Config V2
-
-### Integration Link
-
-- `get-integration-link-details` - Get integration link details
-- `add-or-update-integration-link` - Manage integration links
-- `delete-integration-link` - Delete integration link
-- `jira-add-or-update-integration-link` - Manage Jira links
-- `jira-connect` - Connect to Jira
-
-### API Access
-
-- `get-me` - Get current user details
 
 ## API Rate Limits
 
