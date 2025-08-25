@@ -14,7 +14,7 @@ import type { HttpClient } from "../http";
 type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>;
 
 // Type definition for JSON objects
-type JsonObject = Record<string, any>;
+type JsonObject = Record<string, unknown>;
 
 // Interface for MCP Tool Definition
 interface McpToolDefinition {
@@ -2319,7 +2319,7 @@ async function executeApiTool(
     try {
       const zodSchema = definition.inputSchema;
       const argsToParse = (typeof toolArgs === "object" && toolArgs !== null) ? toolArgs : {};
-      validatedArgs = zodSchema.parse(argsToParse);
+      validatedArgs = zodSchema.parse(argsToParse) as JsonObject;
     } catch (error: unknown) {
       if (error instanceof ZodError) {
         const validationErrorMessage = `Invalid arguments for tool '${toolName}': ${error.errors.map(e => `${e.path.join(".")} (${e.code}): ${e.message}`).join(", ")}`;
@@ -2334,18 +2334,20 @@ async function executeApiTool(
     let urlPath = definition.pathTemplate;
     const queryParams: Record<string, any> = {};
     const headers: Record<string, string> = {};
-    let requestBodyData: any;
+    let requestBodyData: unknown;
 
     // Apply parameters to the URL path, query, or headers
     definition.executionParameters.forEach((param) => {
       const value = validatedArgs[param.name];
       if (typeof value !== "undefined" && value !== null) {
         if (param.in === "path") {
-          urlPath = urlPath.replace(`{${param.name}}`, encodeURIComponent(String(value)));
+          const stringValue = typeof value === "string" ? value : JSON.stringify(value);
+          urlPath = urlPath.replace(`{${param.name}}`, encodeURIComponent(stringValue));
         } else if (param.in === "query") {
           queryParams[param.name] = value;
         } else if (param.in === "header") {
-          headers[param.name.toLowerCase()] = String(value);
+          const stringValue = typeof value === "string" ? value : JSON.stringify(value);
+          headers[param.name.toLowerCase()] = stringValue;
         }
       }
     });
@@ -2369,7 +2371,7 @@ async function executeApiTool(
     const response = await http.request(urlPath, {
       method: method,
       headers: headers,
-      ...(requestBodyData !== undefined && { body: JSON.stringify(requestBodyData) }),
+      ...(typeof requestBodyData !== "undefined" && { body: JSON.stringify(requestBodyData) }),
     });
 
     let responseText = "";
