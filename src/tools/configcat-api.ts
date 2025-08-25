@@ -5,10 +5,13 @@ import {
   type CallToolResult,
   ListToolsRequestSchema,
   type Tool,
+  type ToolSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import { type JsonSchema, jsonSchemaToZod } from "json-schema-to-zod";
 import { z, ZodError } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import type { HttpClient } from "../http";
+
+type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>;
 
 // Type definition for JSON objects
 type JsonObject = Record<string, any>;
@@ -17,7 +20,7 @@ type JsonObject = Record<string, any>;
 interface McpToolDefinition {
   name: string;
   description: string;
-  inputSchema: any;
+  inputSchema: z.ZodType;
   method: string;
   pathTemplate: string;
   executionParameters: { name: string; in: string }[];
@@ -28,7 +31,7 @@ const toolDefinitionMap = new Map<string, McpToolDefinition>([
   ["list-organizations", {
     name: "list-organizations",
     description: "This endpoint returns the list of the Organizations that belongs to the user.",
-    inputSchema: { "type": "object", "properties": {} },
+    inputSchema: z.object({}),
     method: "get",
     pathTemplate: "/v1/organizations",
     executionParameters: [],
@@ -36,7 +39,7 @@ const toolDefinitionMap = new Map<string, McpToolDefinition>([
   ["list-products", {
     name: "list-products",
     description: "This endpoint returns the list of the Products that belongs to the user.",
-    inputSchema: { "type": "object", "properties": {} },
+    inputSchema: z.object({}),
     method: "get",
     pathTemplate: "/v1/products",
     executionParameters: [],
@@ -45,7 +48,9 @@ const toolDefinitionMap = new Map<string, McpToolDefinition>([
     name: "list-tags",
     description: `This endpoint returns the list of the Tags in a 
 specified Product, identified by the \`productId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/tags",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -54,7 +59,13 @@ specified Product, identified by the \`productId\` parameter.`,
     name: "create-tag",
     description: `This endpoint creates a new Tag in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Organization." }, "requestBody": { "required": ["name"], "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 1, "type": "string", "description": "Name of the Tag." }, "color": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "Color of the Tag. Possible values: `panther`, `whale`, `salmon`, `lizard`, `canary`, `koala`, or any HTML color code." } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Organization."),
+      requestBody: z.object({
+        name: z.string().min(1).max(255).describe("Name of the Tag."),
+        color: z.string().max(255).nullable().optional().describe("Color of the Tag. Possible values: `panther`, `whale`, `salmon`, `lizard`, `canary`, `koala`, or any HTML color code."),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/products/{productId}/tags",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -63,7 +74,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-webhooks",
     description: `This endpoint returns the list of the Webhooks that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/webhooks",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -72,7 +85,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-configs",
     description: `This endpoint returns the list of the Configs that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/configs",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -81,7 +96,15 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "create-config",
     description: `This endpoint creates a new Config in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "requestBody": { "required": ["name"], "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The name of the Config." }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The description of the Config." }, "order": { "type": ["number", "null"], "description": "The order of the Config represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.", "format": "int32" }, "evaluationVersion": { "enum": ["v1", "v2"], "type": "string", "description": "Determines the evaluation version of a Config.\nUsing `v2` enables the new features of Config V2 (https://configcat.com/docs/advanced/config-v2)." } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      requestBody: z.object({
+        name: z.string().min(1).max(255).describe("The name of the Config."),
+        description: z.string().max(1000).nullable().optional().describe("The description of the Config."),
+        order: z.number().int().nullable().optional().describe("The order of the Config represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers."),
+        evaluationVersion: z.enum(["v1", "v2"]).optional().describe("Determines the evaluation version of a Config.\nUsing `v2` enables the new features of Config V2 (https://configcat.com/docs/advanced/config-v2)."),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/products/{productId}/configs",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -90,7 +113,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-environments",
     description: `This endpoint returns the list of the Environments that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/environments",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -99,7 +124,15 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "create-environment",
     description: `This endpoint creates a new Environment in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "requestBody": { "required": ["name"], "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The name of the Environment." }, "color": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "The color of the Environment. RGB or HTML color codes are allowed." }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The description of the Environment." }, "order": { "type": ["number", "null"], "description": "The order of the Environment represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.", "format": "int32" } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      requestBody: z.object({
+        name: z.string().min(1).max(255).describe("The name of the Environment."),
+        color: z.string().max(255).nullable().optional().describe("The color of the Environment. RGB or HTML color codes are allowed."),
+        description: z.string().max(1000).nullable().optional().describe("The description of the Environment."),
+        order: z.number().int().nullable().optional().describe("The order of the Environment represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers."),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/products/{productId}/environments",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -108,7 +141,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-permission-groups",
     description: `This endpoint returns the list of the Permission Groups that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/permissions",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -117,7 +152,39 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "create-permission-group",
     description: `This endpoint creates a new Permission Group in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "requestBody": { "required": ["name"], "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 1, "type": "string", "description": "Name of the Permission Group." }, "canManageMembers": { "type": "boolean", "description": "Group members can manage team members." }, "canCreateOrUpdateConfig": { "type": "boolean", "description": "Group members can create/update Configs." }, "canDeleteConfig": { "type": "boolean", "description": "Group members can delete Configs." }, "canCreateOrUpdateEnvironment": { "type": "boolean", "description": "Group members can create/update Environments." }, "canDeleteEnvironment": { "type": "boolean", "description": "Group members can delete Environments." }, "canCreateOrUpdateSetting": { "type": "boolean", "description": "Group members can create/update Feature Flags and Settings." }, "canTagSetting": { "type": "boolean", "description": "Group members can attach/detach Tags to Feature Flags and Settings." }, "canDeleteSetting": { "type": "boolean", "description": "Group members can delete Feature Flags and Settings." }, "canCreateOrUpdateTag": { "type": "boolean", "description": "Group members can create/update Tags." }, "canDeleteTag": { "type": "boolean", "description": "Group members can delete Tags." }, "canManageWebhook": { "type": "boolean", "description": "Group members can create/update/delete Webhooks." }, "canUseExportImport": { "type": "boolean", "description": "Group members can use the export/import feature." }, "canManageProductPreferences": { "type": "boolean", "description": "Group members can update Product preferences." }, "canManageIntegrations": { "type": "boolean", "description": "Group members can add and configure integrations." }, "canViewSdkKey": { "type": "boolean", "description": "Group members has access to SDK keys." }, "canRotateSdkKey": { "type": "boolean", "description": "Group members can rotate SDK keys." }, "canCreateOrUpdateSegments": { "type": "boolean", "description": "Group members can create/update Segments." }, "canDeleteSegments": { "type": "boolean", "description": "Group members can delete Segments." }, "canViewProductAuditLog": { "type": "boolean", "description": "Group members has access to audit logs." }, "canViewProductStatistics": { "type": "boolean", "description": "Group members has access to product statistics." }, "accessType": { "enum": ["readOnly", "full", "custom"], "type": "string", "description": "Represent the Feature Management permission." }, "newEnvironmentAccessType": { "enum": ["full", "readOnly", "none"], "type": "string", "description": "Represent the environment specific Feature Management permission." }, "environmentAccesses": { "type": ["array", "null"], "items": { "type": "object", "properties": { "environmentId": { "type": "string", "description": "Identifier of the Environment.", "format": "uuid" }, "environmentAccessType": { "enum": ["full", "readOnly", "none"], "type": "string", "description": "Represent the environment specific Feature Management permission." } } }, "description": "List of environment specific permissions." }, "canDisable2FA": { "type": "boolean", "description": "Group members can disable two-factor authentication for other members." } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      requestBody: z.object({
+        name: z.string().min(1).max(255).describe("Name of the Permission Group."),
+        canManageMembers: z.boolean().optional().describe("Group members can manage team members."),
+        canCreateOrUpdateConfig: z.boolean().optional().describe("Group members can create/update Configs."),
+        canDeleteConfig: z.boolean().optional().describe("Group members can delete Configs."),
+        canCreateOrUpdateEnvironment: z.boolean().optional().describe("Group members can create/update Environments."),
+        canDeleteEnvironment: z.boolean().optional().describe("Group members can delete Environments."),
+        canCreateOrUpdateSetting: z.boolean().optional().describe("Group members can create/update Feature Flags and Settings."),
+        canTagSetting: z.boolean().optional().describe("Group members can attach/detach Tags to Feature Flags and Settings."),
+        canDeleteSetting: z.boolean().optional().describe("Group members can delete Feature Flags and Settings."),
+        canCreateOrUpdateTag: z.boolean().optional().describe("Group members can create/update Tags."),
+        canDeleteTag: z.boolean().optional().describe("Group members can delete Tags."),
+        canManageWebhook: z.boolean().optional().describe("Group members can create/update/delete Webhooks."),
+        canUseExportImport: z.boolean().optional().describe("Group members can use the export/import feature."),
+        canManageProductPreferences: z.boolean().optional().describe("Group members can update Product preferences."),
+        canManageIntegrations: z.boolean().optional().describe("Group members can add and configure integrations."),
+        canViewSdkKey: z.boolean().optional().describe("Group members has access to SDK keys."),
+        canRotateSdkKey: z.boolean().optional().describe("Group members can rotate SDK keys."),
+        canCreateOrUpdateSegments: z.boolean().optional().describe("Group members can create/update Segments."),
+        canDeleteSegments: z.boolean().optional().describe("Group members can delete Segments."),
+        canViewProductAuditLog: z.boolean().optional().describe("Group members has access to audit logs."),
+        canViewProductStatistics: z.boolean().optional().describe("Group members has access to product statistics."),
+        accessType: z.enum(["readOnly", "full", "custom"]).optional().describe("Represent the Feature Management permission."),
+        newEnvironmentAccessType: z.enum(["full", "readOnly", "none"]).optional().describe("Represent the environment specific Feature Management permission."),
+        environmentAccesses: z.array(z.object({
+          environmentId: z.string().uuid().describe("Identifier of the Environment."),
+          environmentAccessType: z.enum(["full", "readOnly", "none"]).describe("Represent the environment specific Feature Management permission."),
+        })).nullable().optional().describe("List of environment specific permissions."),
+        canDisable2FA: z.boolean().optional().describe("Group members can disable two-factor authentication for other members."),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/products/{productId}/permissions",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -126,7 +193,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-integrations",
     description: `This endpoint returns the list of the Integrations that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/integrations",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -155,7 +224,16 @@ The Parameters dictionary differs for each IntegrationType:
   - \`writeKey\`: Required. Twilio Segment Write Key.
   - \`server\`: Twilio Segment Server. Available values: \`Us\`, \`Eu\`. Default: \`Us\`.
 - PubNub (work in progress)`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "requestBody": { "required": ["configIds", "environmentIds", "integrationType", "name", "parameters"], "type": "object", "properties": { "integrationType": { "enum": ["dataDog", "slack", "amplitude", "mixPanel", "segment", "pubNub"], "type": "string" }, "name": { "minLength": 1, "type": "string", "description": "Name of the Integration." }, "parameters": { "type": "object", "additionalProperties": { "type": "string", "nullable": true }, "description": "Parameters of the Integration." }, "environmentIds": { "type": "array", "items": { "type": "string", "format": "uuid" }, "description": "List of Environment IDs that are connected with this Integration. If the list is empty, all of the Environments are connected." }, "configIds": { "type": "array", "items": { "type": "string", "format": "uuid" }, "description": "List of Config IDs that are connected with this Integration. If the list is empty, all of the Configs are connected." } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      requestBody: z.object({
+        integrationType: z.enum(["dataDog", "slack", "amplitude", "mixPanel", "segment", "pubNub"]),
+        name: z.string().min(1).describe("Name of the Integration."),
+        parameters: z.record(z.string().nullable()).describe("Parameters of the Integration."),
+        environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all of the Environments are connected."),
+        configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all of the Configs are connected."),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/products/{productId}/integrations",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -164,7 +242,9 @@ The Parameters dictionary differs for each IntegrationType:
     name: "list-segments",
     description: `This endpoint returns the list of the Segments that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/segments",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -173,7 +253,22 @@ The Parameters dictionary differs for each IntegrationType:
     name: "create-segment",
     description: `This endpoint creates a new Segment in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "requestBody": { "required": ["comparator", "comparisonAttribute", "comparisonValue", "name"], "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 1, "type": "string", "description": "Name of the Segment." }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "Description of the Segment." }, "comparisonAttribute": { "maxLength": 1000, "minLength": 1, "type": "string", "description": "The user's attribute the evaluation process must take into account." }, "comparator": { "enum": ["isOneOf", "isNotOneOf", "contains", "doesNotContain", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf"], "type": "string", "description": "The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value." }, "comparisonValue": { "minLength": 1, "type": "string", "description": "The value to compare with the given user attribute's value." } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      requestBody: z.object({
+        name: z.string().min(1).max(255).describe("Name of the Segment."),
+        description: z.string().min(0).max(1000).nullable().describe("Description of the Segment."),
+        comparisonAttribute: z.string().min(1).max(1000).describe("The user's attribute the evaluation process must take into account."),
+        comparator: z.enum([
+          "isOneOf", "isNotOneOf", "contains", "doesNotContain",
+          "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals",
+          "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual",
+          "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals",
+          "sensitiveIsOneOf", "sensitiveIsNotOneOf",
+        ]).describe("The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value."),
+        comparisonValue: z.string().min(1).describe("The value to compare with the given user attribute's value."),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/products/{productId}/segments",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -182,7 +277,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-settings",
     description: `This endpoint returns the list of the Feature Flags and Settings defined in a 
 specified Config, identified by the \`configId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." } }, "required": ["configId"] },
+    inputSchema: z.object({
+      configId: z.string().uuid().describe("The identifier of the Config."),
+    }),
     method: "get",
     pathTemplate: "/v1/configs/{configId}/settings",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -193,7 +290,22 @@ specified Config, identified by the \`configId\` parameter.`,
 identified by the \`configId\` parameter.
 
 **Important:** The \`key\` attribute must be unique within the given Config.`,
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "requestBody": { "required": ["key", "name", "settingType"], "type": "object", "properties": { "hint": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "A short description for the setting, shown on the Dashboard UI." }, "tags": { "type": ["array", "null"], "items": { "type": "integer", "format": "int64" }, "description": "The IDs of the tags which are attached to the setting." }, "order": { "type": ["number", "null"], "description": "The order of the Setting represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.", "format": "int32" }, "key": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The key of the Feature Flag or Setting." }, "name": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The name of the Feature Flag or Setting." }, "settingType": { "enum": ["boolean", "string", "int", "double"], "type": "string", "description": "The type of the Feature Flag or Setting." }, "initialValues": { "type": ["array", "null"], "items": { "required": ["value"], "type": "object", "properties": { "environmentId": { "type": "string", "description": "The ID of the Environment where the initial value must be set.", "format": "uuid" }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The initial value in the given Environment. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." } } }, "description": "Optional, initial value of the Feature Flag or Setting in the given Environments. Only one of the SettingIdToInitFrom or the InitialValues properties can be set." }, "settingIdToInitFrom": { "type": ["number", "null"], "description": "Optional, the SettingId to initialize the values and tags of the Feature Flag or Setting from. Only can be set if you have at least ReadOnly access in all the Environments. Only one of the SettingIdToInitFrom or the InitialValues properties can be set.", "format": "int32" } }, "description": "The JSON request body." } }, "required": ["configId", "requestBody"] },
+    inputSchema: z.object({
+      configId: z.string().uuid().describe("The identifier of the Config."),
+      requestBody: z.object({
+        hint: z.string().min(0).max(1000).nullable().describe("A short description for the setting, shown on the Dashboard UI."),
+        tags: z.array(z.number().int()).nullable().describe("The IDs of the tags which are attached to the setting."),
+        order: z.number().int().nullable().describe("The order of the Setting represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
+        key: z.string().min(1).max(255).describe("The key of the Feature Flag or Setting."),
+        name: z.string().min(1).max(255).describe("The name of the Feature Flag or Setting."),
+        settingType: z.enum(["boolean", "string", "int", "double"]).describe("The type of the Feature Flag or Setting."),
+        initialValues: z.array(z.object({
+          environmentId: z.string().uuid().describe("The ID of the Environment where the initial value must be set."),
+          value: z.union([z.boolean(), z.string(), z.number()]).describe("The initial value in the given Environment. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
+        })).nullable().describe("Optional, initial value of the Feature Flag or Setting in the given Environments. Only one of the SettingIdToInitFrom or the InitialValues properties can be set."),
+        settingIdToInitFrom: z.number().int().nullable().describe("Optional, the SettingId to initialize the values and tags of the Feature Flag or Setting from. Only can be set if you have at least ReadOnly access in all the Environments. Only one of the SettingIdToInitFrom or the InitialValues properties can be set."),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/configs/{configId}/settings",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -206,7 +318,39 @@ and the result can be optionally filtered by Config and/or Environment.
 If neither \`fromUtcDateTime\` nor \`toUtcDateTime\` is set, the audit logs for the **last 7 days** will be returned.
 
 The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **30 days**.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "auditLogType": { "allOf": [{ "enum": ["productCreated", "productChanged", "productOwnershipTransferred", "productDeleted", "productsReordered", "teamMemberInvited", "teamMemberInvitationRevoked", "teamMemberJoined", "teamMemberPermissionGroupChanged", "teamMemberRemoved", "teamMemberLeft", "teamMemberInvitationChanged", "teamMemberInvitationResent", "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered", "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated", "settingChanged", "settingDeleted", "settingsReordered", "settingValueChanged", "webHookCreated", "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted", "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged", "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded", "organizationRemoved", "organizationChanged", "organizationSubscriptionTypeChanged", "organizationAdminChanged", "organizationAdminLeft", "twoFactorDisabledForMember", "tagAdded", "tagChanged", "tagRemoved", "settingTagAdded", "settingTagRemoved", "publicApiAccessTokenAdded", "publicApiAccessTokenRemoved", "domainAdded", "domainVerified", "domainRemoved", "domainSamlConfigured", "domainSamlDeleted", "autoProvisioningConfigurationChanged", "samlIdpConfigurationAdded", "samlIdpConfigurationRemoved", "samlIdpConfigurationUpdated", "autoProvisioningEnabledChanged", "organizationMemberJoined", "organizationMemberProductJoinRequested", "organizationMemberProductJoinRequestRejected", "organizationMemberProductJoinRequestApproved", "organizationMemberRemoved", "codeReferencesUploaded", "codeReferenceDeleted", "codeReferenceStaleBranchDeleted", "segmentCreated", "segmentChanged", "segmentDeleted", "webhookSigningKeyDeleted", "webhookSigningKeyCreated", "userProvisioningConfigurationChanged", "syncGroupProvisioningRuleChanged", "syncGroupsReordered", "syncUserProvisioningEnabled", "syncUserProvisioningDisabled", "userEmailChanged", "userFullNameChanged", "userDisabled", "awsConnected", "awsDisconnected", "userEnabled", "syncUserDeleted", "syncGroupDeleted", "proxyConfigurationCreated", "proxyConfigurationChanged", "proxyConfigurationDeleted", "proxyConfigurationSecretRegenerated", "proxyNotificationSettingsUpdated", "proxyNotificationSettingsDeleted", "proxyNotificationSigningKeyAdded", "proxyNotificationSigningKeyDeleted"], "type": "string" }], "type": "null", "description": "Filter Audit logs by Audit log type." }, "fromUtcDateTime": { "type": "string", "format": "date-time", "description": "Filter Audit logs by starting UTC date." }, "toUtcDateTime": { "type": "string", "format": "date-time", "description": "Filter Audit logs by ending UTC date." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      configId: z.string().uuid().optional().describe("The identifier of the Config."),
+      environmentId: z.string().uuid().optional().describe("The identifier of the Environment."),
+      auditLogType: z.enum([
+        "productCreated", "productChanged", "productOwnershipTransferred", "productDeleted", "productsReordered",
+        "teamMemberInvited", "teamMemberInvitationRevoked", "teamMemberJoined", "teamMemberPermissionGroupChanged",
+        "teamMemberRemoved", "teamMemberLeft", "teamMemberInvitationChanged", "teamMemberInvitationResent",
+        "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered",
+        "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated",
+        "settingChanged", "settingDeleted", "settingsReordered", "settingValueChanged", "webHookCreated",
+        "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted",
+        "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged",
+        "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded",
+        "organizationRemoved", "organizationChanged", "organizationSubscriptionTypeChanged", "organizationAdminChanged",
+        "organizationAdminLeft", "twoFactorDisabledForMember", "tagAdded", "tagChanged", "tagRemoved", "settingTagAdded",
+        "settingTagRemoved", "publicApiAccessTokenAdded", "publicApiAccessTokenRemoved", "domainAdded", "domainVerified",
+        "domainRemoved", "domainSamlConfigured", "domainSamlDeleted", "autoProvisioningConfigurationChanged",
+        "samlIdpConfigurationAdded", "samlIdpConfigurationRemoved", "samlIdpConfigurationUpdated",
+        "autoProvisioningEnabledChanged", "organizationMemberJoined", "organizationMemberProductJoinRequested",
+        "organizationMemberProductJoinRequestRejected", "organizationMemberProductJoinRequestApproved",
+        "organizationMemberRemoved", "codeReferencesUploaded", "codeReferenceDeleted", "codeReferenceStaleBranchDeleted",
+        "segmentCreated", "segmentChanged", "segmentDeleted", "webhookSigningKeyDeleted", "webhookSigningKeyCreated",
+        "userProvisioningConfigurationChanged", "syncGroupProvisioningRuleChanged", "syncGroupsReordered",
+        "syncUserProvisioningEnabled", "syncUserProvisioningDisabled", "userEmailChanged", "userFullNameChanged",
+        "userDisabled", "awsConnected", "awsDisconnected", "userEnabled", "syncUserDeleted", "syncGroupDeleted",
+        "proxyConfigurationCreated", "proxyConfigurationChanged", "proxyConfigurationDeleted",
+        "proxyConfigurationSecretRegenerated", "proxyNotificationSettingsUpdated", "proxyNotificationSettingsDeleted",
+        "proxyNotificationSigningKeyAdded", "proxyNotificationSigningKeyDeleted",
+      ]).nullable().optional().describe("Filter Audit logs by Audit log type."),
+      fromUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by starting UTC date."),
+      toUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by ending UTC date."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/auditlogs",
     executionParameters: [{ "name": "productId", "in": "path" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "auditLogType", "in": "query" }, { "name": "fromUtcDateTime", "in": "query" }, { "name": "toUtcDateTime", "in": "query" }],
@@ -215,7 +359,14 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
     name: "list-staleflags",
     description: `This endpoint returns the list of Zombie (stale) flags for a given Product 
 and the result can be optionally filtered by various parameters.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "scope": { "enum": ["all", "watchedByMe"], "type": "string", "description": "The scope of the report." }, "staleFlagAgeDays": { "maximum": 90, "minimum": 7, "type": "number", "format": "int32", "description": "The inactivity in days after a feature flag should be considered stale." }, "staleFlagStaleInEnvironmentsType": { "enum": ["staleInAnyEnvironments", "staleInAllEnvironments"], "type": "string", "description": "Consider a feature flag as stale if the feature flag is stale in all/any of the environments." }, "ignoredEnvironmentIds": { "type": "array", "items": { "type": "string", "format": "uuid" }, "description": "Ignore environment identifiers from the report." }, "ignoredTagIds": { "type": "array", "items": { "type": "number", "format": "int64" }, "description": "Ignore feature flags from the report based on their tag identifiers." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      scope: z.enum(["all", "watchedByMe"]).optional().describe("The scope of the report."),
+      staleFlagAgeDays: z.number().int().min(7).max(90).optional().describe("The inactivity in days after a feature flag should be considered stale."),
+      staleFlagStaleInEnvironmentsType: z.enum(["staleInAnyEnvironments", "staleInAllEnvironments"]).optional().describe("Consider a feature flag as stale if the feature flag is stale in all/any of the environments."),
+      ignoredEnvironmentIds: z.array(z.string().uuid()).optional().describe("Ignore environment identifiers from the report."),
+      ignoredTagIds: z.array(z.number().int()).optional().describe("Ignore feature flags from the report based on their tag identifiers."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/staleflags",
     executionParameters: [{ "name": "productId", "in": "path" }, { "name": "scope", "in": "query" }, { "name": "staleFlagAgeDays", "in": "query" }, { "name": "staleFlagStaleInEnvironmentsType", "in": "query" }, { "name": "ignoredEnvironmentIds", "in": "query" }, { "name": "ignoredTagIds", "in": "query" }],
@@ -223,7 +374,9 @@ and the result can be optionally filtered by various parameters.`,
   ["GetV1SettingsCodeReferences", {
     name: "GetV1SettingsCodeReferences",
     description: "Get References for Feature Flag or Setting",
-    inputSchema: { "type": "object", "properties": { "settingId": { "type": "number", "format": "int32", "description": "The identifier of the Feature Flag or Setting." } }, "required": ["settingId"] },
+    inputSchema: z.object({
+      settingId: z.number().int().describe("The identifier of the Feature Flag or Setting."),
+    }),
     method: "get",
     pathTemplate: "/v1/settings/{settingId}/code-references",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -232,7 +385,9 @@ and the result can be optionally filtered by various parameters.`,
     name: "get-config",
     description: `This endpoint returns the metadata of a Config
 identified by the \`configId\`.`,
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." } }, "required": ["configId"] },
+    inputSchema: z.object({
+      configId: z.string().uuid().describe("The identifier of the Config."),
+    }),
     method: "get",
     pathTemplate: "/v1/configs/{configId}",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -240,7 +395,14 @@ identified by the \`configId\`.`,
   ["update-config", {
     name: "update-config",
     description: "This endpoint updates a Config identified by the `configId` parameter.",
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "requestBody": { "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "The name of the Config." }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The description of the Config." }, "order": { "type": ["number", "null"], "description": "The order of the Config represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.", "format": "int32" } }, "description": "The JSON request body." } }, "required": ["configId", "requestBody"] },
+    inputSchema: z.object({
+      configId: z.string().uuid().describe("The identifier of the Config."),
+      requestBody: z.object({
+        name: z.string().min(0).max(255).nullable().describe("The name of the Config."),
+        description: z.string().min(0).max(1000).nullable().describe("The description of the Config."),
+        order: z.number().int().nullable().describe("The order of the Config represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/configs/{configId}",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -248,7 +410,9 @@ identified by the \`configId\`.`,
   ["delete-config", {
     name: "delete-config",
     description: "This endpoint removes a Config identified by the `configId` parameter.",
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." } }, "required": ["configId"] },
+    inputSchema: z.object({
+      configId: z.string().uuid().describe("The identifier of the Config."),
+    }),
     method: "delete",
     pathTemplate: "/v1/configs/{configId}",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -257,7 +421,9 @@ identified by the \`configId\`.`,
     name: "get-environment",
     description: `This endpoint returns the metadata of an Environment 
 identified by the \`environmentId\`.`,
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." } }, "required": ["environmentId"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+    }),
     method: "get",
     pathTemplate: "/v1/environments/{environmentId}",
     executionParameters: [{ "name": "environmentId", "in": "path" }],
@@ -265,7 +431,15 @@ identified by the \`environmentId\`.`,
   ["update-environment", {
     name: "update-environment",
     description: "This endpoint updates an Environment identified by the `environmentId` parameter.",
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "requestBody": { "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "The name of the Environment." }, "color": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "The color of the Environment. RGB or HTML color codes are allowed." }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The description of the Environment." }, "order": { "type": ["number", "null"], "description": "The order of the Environment represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.", "format": "int32" } }, "description": "The JSON request body." } }, "required": ["environmentId", "requestBody"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+      requestBody: z.object({
+        name: z.string().min(0).max(255).nullable().optional().describe("The name of the Environment."),
+        color: z.string().min(0).max(255).nullable().optional().describe("The color of the Environment. RGB or HTML color codes are allowed."),
+        description: z.string().min(0).max(1000).nullable().optional().describe("The description of the Environment."),
+        order: z.number().int().nullable().optional().describe("The order of the Environment represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers."),
+      }).describe("The JSON request body."),
+    }),
     method: "put",
     pathTemplate: "/v1/environments/{environmentId}",
     executionParameters: [{ "name": "environmentId", "in": "path" }],
@@ -275,7 +449,10 @@ identified by the \`environmentId\`.`,
     description: `This endpoint removes an Environment identified by the \`environmentId\` parameter.
 If the \`cleanupAuditLogs\` flag is set to true, it also deletes the audit log records related to the environment
 (except for the \`Created a new environment\` and \`Deleted an environment\` records).`,
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "cleanupAuditLogs": { "type": "boolean", "description": "An optional flag which indicates whether the audit log records related to the environment should be deleted or not." } }, "required": ["environmentId"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+      cleanupAuditLogs: z.boolean().optional().describe("An optional flag which indicates whether the audit log records related to the environment should be deleted or not."),
+    }),
     method: "delete",
     pathTemplate: "/v1/environments/{environmentId}",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "cleanupAuditLogs", "in": "query" }],
@@ -284,7 +461,9 @@ If the \`cleanupAuditLogs\` flag is set to true, it also deletes the audit log r
     name: "get-permission-group",
     description: `This endpoint returns the metadata of a Permission Group 
 identified by the \`permissionGroupId\`.`,
-    inputSchema: { "type": "object", "properties": { "permissionGroupId": { "type": "number", "format": "int64", "description": "The identifier of the Permission Group." } }, "required": ["permissionGroupId"] },
+    inputSchema: z.object({
+      permissionGroupId: z.number().int().describe("The identifier of the Permission Group."),
+    }),
     method: "get",
     pathTemplate: "/v1/permissions/{permissionGroupId}",
     executionParameters: [{ "name": "permissionGroupId", "in": "path" }],
@@ -292,7 +471,39 @@ identified by the \`permissionGroupId\`.`,
   ["update-permission-group", {
     name: "update-permission-group",
     description: "This endpoint updates a Permission Group identified by the `permissionGroupId` parameter.",
-    inputSchema: { "type": "object", "properties": { "permissionGroupId": { "type": "number", "format": "int64", "description": "The identifier of the Permission Group." }, "requestBody": { "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "Name of the Permission Group." }, "canManageMembers": { "type": ["boolean", "null"], "description": "Group members can manage team members." }, "canCreateOrUpdateConfig": { "type": ["boolean", "null"], "description": "Group members can create/update Configs." }, "canDeleteConfig": { "type": ["boolean", "null"], "description": "Group members can delete Configs." }, "canCreateOrUpdateEnvironment": { "type": ["boolean", "null"], "description": "Group members can create/update Environments." }, "canDeleteEnvironment": { "type": ["boolean", "null"], "description": "Group members can delete Environments." }, "canCreateOrUpdateSetting": { "type": ["boolean", "null"], "description": "Group members can create/update Feature Flags and Settings." }, "canTagSetting": { "type": ["boolean", "null"], "description": "Group members can attach/detach Tags to Feature Flags and Settings." }, "canDeleteSetting": { "type": ["boolean", "null"], "description": "Group members can delete Feature Flags and Settings." }, "canCreateOrUpdateTag": { "type": ["boolean", "null"], "description": "Group members can create/update Tags." }, "canDeleteTag": { "type": ["boolean", "null"], "description": "Group members can delete Tags." }, "canManageWebhook": { "type": ["boolean", "null"], "description": "Group members can create/update/delete Webhooks." }, "canUseExportImport": { "type": ["boolean", "null"], "description": "Group members can use the export/import feature." }, "canManageProductPreferences": { "type": ["boolean", "null"], "description": "Group members can update Product preferences." }, "canManageIntegrations": { "type": ["boolean", "null"], "description": "Group members can add and configure integrations." }, "canViewSdkKey": { "type": ["boolean", "null"], "description": "Group members has access to SDK keys." }, "canRotateSdkKey": { "type": ["boolean", "null"], "description": "Group members can rotate SDK keys." }, "canCreateOrUpdateSegments": { "type": ["boolean", "null"], "description": "Group members can create/update Segments." }, "canDeleteSegments": { "type": ["boolean", "null"], "description": "Group members can delete Segments." }, "canViewProductAuditLog": { "type": ["boolean", "null"], "description": "Group members has access to audit logs." }, "canViewProductStatistics": { "type": ["boolean", "null"], "description": "Group members has access to product statistics." }, "canDisable2FA": { "type": ["boolean", "null"], "description": "Group members can disable two-factor authentication for other members." }, "accessType": { "allOf": [{ "enum": ["readOnly", "full", "custom"], "type": "string", "description": "Represent the Feature Management permission." }], "type": "null" }, "newEnvironmentAccessType": { "allOf": [{ "enum": ["full", "readOnly", "none"], "type": "string", "description": "Represent the environment specific Feature Management permission." }], "type": "null" }, "environmentAccesses": { "type": ["array", "null"], "items": { "type": "object", "properties": { "environmentId": { "type": "string", "description": "Identifier of the Environment.", "format": "uuid" }, "environmentAccessType": { "enum": ["full", "readOnly", "none"], "type": "string", "description": "Represent the environment specific Feature Management permission." } } }, "description": "List of environment specific permissions." } }, "description": "The JSON request body." } }, "required": ["permissionGroupId", "requestBody"] },
+    inputSchema: z.object({
+      permissionGroupId: z.number().int().describe("The identifier of the Permission Group."),
+      requestBody: z.object({
+        name: z.string().min(0).max(255).nullable().describe("Name of the Permission Group."),
+        canManageMembers: z.boolean().nullable().describe("Group members can manage team members."),
+        canCreateOrUpdateConfig: z.boolean().nullable().describe("Group members can create/update Configs."),
+        canDeleteConfig: z.boolean().nullable().describe("Group members can delete Configs."),
+        canCreateOrUpdateEnvironment: z.boolean().nullable().describe("Group members can create/update Environments."),
+        canDeleteEnvironment: z.boolean().nullable().describe("Group members can delete Environments."),
+        canCreateOrUpdateSetting: z.boolean().nullable().describe("Group members can create/update Feature Flags and Settings."),
+        canTagSetting: z.boolean().nullable().describe("Group members can attach/detach Tags to Feature Flags and Settings."),
+        canDeleteSetting: z.boolean().nullable().describe("Group members can delete Feature Flags and Settings."),
+        canCreateOrUpdateTag: z.boolean().nullable().describe("Group members can create/update Tags."),
+        canDeleteTag: z.boolean().nullable().describe("Group members can delete Tags."),
+        canManageWebhook: z.boolean().nullable().describe("Group members can create/update/delete Webhooks."),
+        canUseExportImport: z.boolean().nullable().describe("Group members can use the export/import feature."),
+        canManageProductPreferences: z.boolean().nullable().describe("Group members can update Product preferences."),
+        canManageIntegrations: z.boolean().nullable().describe("Group members can add and configure integrations."),
+        canViewSdkKey: z.boolean().nullable().describe("Group members has access to SDK keys."),
+        canRotateSdkKey: z.boolean().nullable().describe("Group members can rotate SDK keys."),
+        canCreateOrUpdateSegments: z.boolean().nullable().describe("Group members can create/update Segments."),
+        canDeleteSegments: z.boolean().nullable().describe("Group members can delete Segments."),
+        canViewProductAuditLog: z.boolean().nullable().describe("Group members has access to audit logs."),
+        canViewProductStatistics: z.boolean().nullable().describe("Group members has access to product statistics."),
+        canDisable2FA: z.boolean().nullable().describe("Group members can disable two-factor authentication for other members."),
+        accessType: z.enum(["readOnly", "full", "custom"]).nullable().describe("Represent the Feature Management permission."),
+        newEnvironmentAccessType: z.enum(["full", "readOnly", "none"]).nullable().describe("Represent the environment specific Feature Management permission."),
+        environmentAccesses: z.array(z.object({
+          environmentId: z.string().uuid().describe("Identifier of the Environment."),
+          environmentAccessType: z.enum(["full", "readOnly", "none"]).describe("Represent the environment specific Feature Management permission."),
+        })).nullable().describe("List of environment specific permissions."),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/permissions/{permissionGroupId}",
     executionParameters: [{ "name": "permissionGroupId", "in": "path" }],
@@ -300,7 +511,9 @@ identified by the \`permissionGroupId\`.`,
   ["delete-permission-group", {
     name: "delete-permission-group",
     description: "This endpoint removes a Permission Group identified by the `permissionGroupId` parameter.",
-    inputSchema: { "type": "object", "properties": { "permissionGroupId": { "type": "number", "format": "int64", "description": "The identifier of the Permission Group." } }, "required": ["permissionGroupId"] },
+    inputSchema: z.object({
+      permissionGroupId: z.number().int().describe("The identifier of the Permission Group."),
+    }),
     method: "delete",
     pathTemplate: "/v1/permissions/{permissionGroupId}",
     executionParameters: [{ "name": "permissionGroupId", "in": "path" }],
@@ -309,7 +522,9 @@ identified by the \`permissionGroupId\`.`,
     name: "get-integration",
     description: `This endpoint returns the metadata of an Integration
 identified by the \`integrationId\`.`,
-    inputSchema: { "type": "object", "properties": { "integrationId": { "type": "string", "format": "uuid", "description": "The identifier of the Integration." } }, "required": ["integrationId"] },
+    inputSchema: z.object({
+      integrationId: z.string().uuid().describe("The identifier of the Integration."),
+    }),
     method: "get",
     pathTemplate: "/v1/integrations/{integrationId}",
     executionParameters: [{ "name": "integrationId", "in": "path" }],
@@ -337,7 +552,15 @@ The Parameters dictionary differs for each IntegrationType:
   - \`writeKey\`: Required. Twilio Segment Write Key.
   - \`server\`: Twilio Segment Server. Available values: \`Us\`, \`Eu\`. Default: \`Us\`.
 - PubNub (work in progress)`,
-    inputSchema: { "type": "object", "properties": { "integrationId": { "type": "string", "format": "uuid", "description": "The identifier of the Integration." }, "requestBody": { "required": ["configIds", "environmentIds", "name", "parameters"], "type": "object", "properties": { "name": { "minLength": 1, "type": "string", "description": "Name of the Integration." }, "parameters": { "type": "object", "additionalProperties": { "type": "string", "nullable": true }, "description": "Parameters of the Integration." }, "environmentIds": { "type": "array", "items": { "type": "string", "format": "uuid" }, "description": "List of Environment IDs that are connected with this Integration. If the list is empty, all of the Environments are connected." }, "configIds": { "type": "array", "items": { "type": "string", "format": "uuid" }, "description": "List of Config IDs that are connected with this Integration. If the list is empty, all of the Configs are connected." } }, "description": "The JSON request body." } }, "required": ["integrationId", "requestBody"] },
+    inputSchema: z.object({
+      integrationId: z.string().uuid().describe("The identifier of the Integration."),
+      requestBody: z.object({
+        name: z.string().min(1).describe("Name of the Integration."),
+        parameters: z.record(z.string().nullable()).describe("Parameters of the Integration."),
+        environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all of the Environments are connected."),
+        configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all of the Configs are connected."),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/integrations/{integrationId}",
     executionParameters: [{ "name": "integrationId", "in": "path" }],
@@ -345,7 +568,9 @@ The Parameters dictionary differs for each IntegrationType:
   ["delete-integration", {
     name: "delete-integration",
     description: "This endpoint removes a Integration identified by the `integrationId` parameter.",
-    inputSchema: { "type": "object", "properties": { "integrationId": { "type": "string", "format": "uuid", "description": "The identifier of the Integration." } }, "required": ["integrationId"] },
+    inputSchema: z.object({
+      integrationId: z.string().uuid().describe("The identifier of the Integration."),
+    }),
     method: "delete",
     pathTemplate: "/v1/integrations/{integrationId}",
     executionParameters: [{ "name": "integrationId", "in": "path" }],
@@ -353,7 +578,10 @@ The Parameters dictionary differs for each IntegrationType:
   ["get-sdk-keys", {
     name: "get-sdk-keys",
     description: "This endpoint returns the SDK Key for your Config in a specified Environment.",
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." } }, "required": ["configId", "environmentId"] },
+    inputSchema: z.object({
+      configId: z.string().uuid().describe("The identifier of the Config."),
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+    }),
     method: "get",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
@@ -366,7 +594,40 @@ and the result can be optionally filtered by Product and/or Config and/or Enviro
 If neither \`fromUtcDateTime\` nor \`toUtcDateTime\` is set, the audit logs for the **last 7 days** will be returned.
 
 The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **30 days**.`,
-    inputSchema: { "type": "object", "properties": { "organizationId": { "type": "string", "format": "uuid", "description": "The identifier of the Organization." }, "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "auditLogType": { "allOf": [{ "enum": ["productCreated", "productChanged", "productOwnershipTransferred", "productDeleted", "productsReordered", "teamMemberInvited", "teamMemberInvitationRevoked", "teamMemberJoined", "teamMemberPermissionGroupChanged", "teamMemberRemoved", "teamMemberLeft", "teamMemberInvitationChanged", "teamMemberInvitationResent", "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered", "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated", "settingChanged", "settingDeleted", "settingsReordered", "settingValueChanged", "webHookCreated", "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted", "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged", "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded", "organizationRemoved", "organizationChanged", "organizationSubscriptionTypeChanged", "organizationAdminChanged", "organizationAdminLeft", "twoFactorDisabledForMember", "tagAdded", "tagChanged", "tagRemoved", "settingTagAdded", "settingTagRemoved", "publicApiAccessTokenAdded", "publicApiAccessTokenRemoved", "domainAdded", "domainVerified", "domainRemoved", "domainSamlConfigured", "domainSamlDeleted", "autoProvisioningConfigurationChanged", "samlIdpConfigurationAdded", "samlIdpConfigurationRemoved", "samlIdpConfigurationUpdated", "autoProvisioningEnabledChanged", "organizationMemberJoined", "organizationMemberProductJoinRequested", "organizationMemberProductJoinRequestRejected", "organizationMemberProductJoinRequestApproved", "organizationMemberRemoved", "codeReferencesUploaded", "codeReferenceDeleted", "codeReferenceStaleBranchDeleted", "segmentCreated", "segmentChanged", "segmentDeleted", "webhookSigningKeyDeleted", "webhookSigningKeyCreated", "userProvisioningConfigurationChanged", "syncGroupProvisioningRuleChanged", "syncGroupsReordered", "syncUserProvisioningEnabled", "syncUserProvisioningDisabled", "userEmailChanged", "userFullNameChanged", "userDisabled", "awsConnected", "awsDisconnected", "userEnabled", "syncUserDeleted", "syncGroupDeleted", "proxyConfigurationCreated", "proxyConfigurationChanged", "proxyConfigurationDeleted", "proxyConfigurationSecretRegenerated", "proxyNotificationSettingsUpdated", "proxyNotificationSettingsDeleted", "proxyNotificationSigningKeyAdded", "proxyNotificationSigningKeyDeleted"], "type": "string" }], "type": "null", "description": "Filter Audit logs by Audit log type." }, "fromUtcDateTime": { "type": "string", "format": "date-time", "description": "Filter Audit logs by starting UTC date." }, "toUtcDateTime": { "type": "string", "format": "date-time", "description": "Filter Audit logs by ending UTC date." } }, "required": ["organizationId"] },
+    inputSchema: z.object({
+      organizationId: z.string().uuid().describe("The identifier of the Organization."),
+      productId: z.string().uuid().optional().describe("The identifier of the Product."),
+      configId: z.string().uuid().optional().describe("The identifier of the Config."),
+      environmentId: z.string().uuid().optional().describe("The identifier of the Environment."),
+      auditLogType: z.enum([
+        "productCreated", "productChanged", "productOwnershipTransferred", "productDeleted", "productsReordered",
+        "teamMemberInvited", "teamMemberInvitationRevoked", "teamMemberJoined", "teamMemberPermissionGroupChanged",
+        "teamMemberRemoved", "teamMemberLeft", "teamMemberInvitationChanged", "teamMemberInvitationResent",
+        "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered",
+        "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated",
+        "settingChanged", "settingDeleted", "settingsReordered", "settingValueChanged", "webHookCreated",
+        "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted",
+        "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged",
+        "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded",
+        "organizationRemoved", "organizationChanged", "organizationSubscriptionTypeChanged", "organizationAdminChanged",
+        "organizationAdminLeft", "twoFactorDisabledForMember", "tagAdded", "tagChanged", "tagRemoved", "settingTagAdded",
+        "settingTagRemoved", "publicApiAccessTokenAdded", "publicApiAccessTokenRemoved", "domainAdded", "domainVerified",
+        "domainRemoved", "domainSamlConfigured", "domainSamlDeleted", "autoProvisioningConfigurationChanged",
+        "samlIdpConfigurationAdded", "samlIdpConfigurationRemoved", "samlIdpConfigurationUpdated",
+        "autoProvisioningEnabledChanged", "organizationMemberJoined", "organizationMemberProductJoinRequested",
+        "organizationMemberProductJoinRequestRejected", "organizationMemberProductJoinRequestApproved",
+        "organizationMemberRemoved", "codeReferencesUploaded", "codeReferenceDeleted", "codeReferenceStaleBranchDeleted",
+        "segmentCreated", "segmentChanged", "segmentDeleted", "webhookSigningKeyDeleted", "webhookSigningKeyCreated",
+        "userProvisioningConfigurationChanged", "syncGroupProvisioningRuleChanged", "syncGroupsReordered",
+        "syncUserProvisioningEnabled", "syncUserProvisioningDisabled", "userEmailChanged", "userFullNameChanged",
+        "userDisabled", "awsConnected", "awsDisconnected", "userEnabled", "syncUserDeleted", "syncGroupDeleted",
+        "proxyConfigurationCreated", "proxyConfigurationChanged", "proxyConfigurationDeleted",
+        "proxyConfigurationSecretRegenerated", "proxyNotificationSettingsUpdated", "proxyNotificationSettingsDeleted",
+        "proxyNotificationSigningKeyAdded", "proxyNotificationSigningKeyDeleted",
+      ]).nullable().optional().describe("Filter Audit logs by Audit log type."),
+      fromUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by starting UTC date."),
+      toUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by ending UTC date."),
+    }),
     method: "get",
     pathTemplate: "/v1/organizations/{organizationId}/auditlogs",
     executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "productId", "in": "query" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "auditLogType", "in": "query" }, { "name": "fromUtcDateTime", "in": "query" }, { "name": "toUtcDateTime", "in": "query" }],
@@ -380,7 +641,9 @@ The results may vary based on the access level of the user who calls the endpoin
 - When it's called with Organization Admin privileges, the result will contain each member in the Organization.
 - When it's called without Organization Admin privileges, the result will contain each Organization Admin along with members 
   of those products where the caller has \`Team members and permission groups\` (\`canManageMembers\`) permission.`,
-    inputSchema: { "type": "object", "properties": { "organizationId": { "type": "string", "format": "uuid", "description": "The identifier of the Organization." } }, "required": ["organizationId"] },
+    inputSchema: z.object({
+      organizationId: z.string().uuid().describe("The identifier of the Organization."),
+    }),
     method: "get",
     pathTemplate: "/v2/organizations/{organizationId}/members",
     executionParameters: [{ "name": "organizationId", "in": "path" }],
@@ -389,7 +652,9 @@ The results may vary based on the access level of the user who calls the endpoin
     name: "list-pending-invitations-org",
     description: `This endpoint returns the list of pending invitations within the
 given Organization identified by the \`organizationId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "organizationId": { "type": "string", "format": "uuid", "description": "The identifier of the Organization." } }, "required": ["organizationId"] },
+    inputSchema: z.object({
+      organizationId: z.string().uuid().describe("The identifier of the Organization."),
+    }),
     method: "get",
     pathTemplate: "/v1/organizations/{organizationId}/invitations",
     executionParameters: [{ "name": "organizationId", "in": "path" }],
@@ -398,7 +663,9 @@ given Organization identified by the \`organizationId\` parameter.`,
     name: "list-pending-invitations",
     description: `This endpoint returns the list of pending invitations within the
 given Product identified by the \`productId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/invitations",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -407,7 +674,9 @@ given Product identified by the \`productId\` parameter.`,
     name: "get-product",
     description: `This endpoint returns the metadata of a Product 
 identified by the \`productId\`.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -415,7 +684,14 @@ identified by the \`productId\`.`,
   ["update-product", {
     name: "update-product",
     description: "This endpoint updates a Product identified by the `productId` parameter.",
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "requestBody": { "type": "object", "properties": { "name": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The name of the Product." }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The description of the Product." }, "order": { "type": ["number", "null"], "description": "The order of the Product represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.", "format": "int32" } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      requestBody: z.object({
+        name: z.string().min(0).max(1000).nullable().describe("The name of the Product."),
+        description: z.string().min(0).max(1000).nullable().describe("The description of the Product."),
+        order: z.number().int().nullable().describe("The order of the Product represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/products/{productId}",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -423,7 +699,9 @@ identified by the \`productId\`.`,
   ["delete-product", {
     name: "delete-product",
     description: "This endpoint removes a Product identified by the `productId` parameter.",
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "delete",
     pathTemplate: "/v1/products/{productId}",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -432,16 +710,20 @@ identified by the \`productId\`.`,
     name: "list-product-members",
     description: `This endpoint returns the list of Members that belongs 
 to the given Product, identified by the \`productId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/members",
     executionParameters: [{ "name": "productId", "in": "path" }],
   }],
   ["get-product-preferences", {
     name: "get-product-preferences",
-    description: `This endpoint returns the preferences of a Product 
+    description: `This endpoint returns the preferences of a Product
 identified by the \`productId\`.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." } }, "required": ["productId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+    }),
     method: "get",
     pathTemplate: "/v1/products/{productId}/preferences",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -449,7 +731,19 @@ identified by the \`productId\`.`,
   ["update-product-preferences", {
     name: "update-product-preferences",
     description: "This endpoint updates the preferences of a Product identified by the `productId` parameter.",
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "requestBody": { "type": "object", "properties": { "reasonRequired": { "type": ["boolean", "null"], "description": "Indicates that a mandatory note is required for saving and publishing." }, "keyGenerationMode": { "allOf": [{ "enum": ["camelCase", "lowerCase", "upperCase", "pascalCase", "kebabCase"], "type": "string", "description": "Determines the Feature Flag key generation mode." }], "type": "null" }, "showVariationId": { "type": ["boolean", "null"], "description": "Indicates whether a variation ID's must be shown on the ConfigCat Dashboard." }, "mandatorySettingHint": { "type": ["boolean", "null"], "description": "Indicates whether Feature flags and Settings must have a hint." }, "reasonRequiredEnvironments": { "type": ["array", "null"], "items": { "type": "object", "properties": { "environmentId": { "type": "string", "description": "Identifier of the Environment.", "format": "uuid" }, "reasonRequired": { "type": "boolean", "description": "Indicates that a mandatory note is required in this Environment for saving and publishing." } } }, "description": "List of Environments where mandatory note must be set before saving and publishing." } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      requestBody: z.object({
+        reasonRequired: z.boolean().nullable().describe("Indicates that a mandatory note is required for saving and publishing."),
+        keyGenerationMode: z.enum(["camelCase", "lowerCase", "upperCase", "pascalCase", "kebabCase"]).nullable().describe("Determines the Feature Flag key generation mode."),
+        showVariationId: z.boolean().nullable().describe("Indicates whether a variation ID's must be shown on the ConfigCat Dashboard."),
+        mandatorySettingHint: z.boolean().nullable().describe("Indicates whether Feature flags and Settings must have a hint."),
+        reasonRequiredEnvironments: z.array(z.object({
+          environmentId: z.string().uuid().describe("Identifier of the Environment."),
+          reasonRequired: z.boolean().describe("Indicates that a mandatory note is required in this Environment for saving and publishing."),
+        })).nullable().describe("List of Environments where mandatory note must be set before saving and publishing."),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/products/{productId}/preferences",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -458,7 +752,9 @@ identified by the \`productId\`.`,
     name: "get-segment",
     description: `This endpoint returns the metadata of a Segment
 identified by the \`segmentId\`.`,
-    inputSchema: { "type": "object", "properties": { "segmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Segment." } }, "required": ["segmentId"] },
+    inputSchema: z.object({
+      segmentId: z.string().uuid().describe("The identifier of the Segment."),
+    }),
     method: "get",
     pathTemplate: "/v1/segments/{segmentId}",
     executionParameters: [{ "name": "segmentId", "in": "path" }],
@@ -466,7 +762,22 @@ identified by the \`segmentId\`.`,
   ["update-segment", {
     name: "update-segment",
     description: "This endpoint updates a Segment identified by the `segmentId` parameter.",
-    inputSchema: { "type": "object", "properties": { "segmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Segment." }, "requestBody": { "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 0, "type": ["string", "null"] }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"] }, "comparisonAttribute": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"] }, "comparator": { "allOf": [{ "enum": ["isOneOf", "isNotOneOf", "contains", "doesNotContain", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf"], "type": "string", "description": "The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value." }], "type": "null" }, "comparisonValue": { "type": ["string", "null"] } }, "description": "The JSON request body." } }, "required": ["segmentId", "requestBody"] },
+    inputSchema: z.object({
+      segmentId: z.string().uuid().describe("The identifier of the Segment."),
+      requestBody: z.object({
+        name: z.string().min(0).max(255).nullable(),
+        description: z.string().min(0).max(1000).nullable(),
+        comparisonAttribute: z.string().min(0).max(1000).nullable(),
+        comparator: z.enum([
+          "isOneOf", "isNotOneOf", "contains", "doesNotContain",
+          "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals",
+          "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual",
+          "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals",
+          "sensitiveIsOneOf", "sensitiveIsNotOneOf",
+        ]).nullable().describe("The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value."),
+        comparisonValue: z.string().nullable(),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/segments/{segmentId}",
     executionParameters: [{ "name": "segmentId", "in": "path" }],
@@ -474,7 +785,9 @@ identified by the \`segmentId\`.`,
   ["delete-segment", {
     name: "delete-segment",
     description: "This endpoint removes a Segment identified by the `segmentId` parameter.",
-    inputSchema: { "type": "object", "properties": { "segmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Segment." } }, "required": ["segmentId"] },
+    inputSchema: z.object({
+      segmentId: z.string().uuid().describe("The identifier of the Segment."),
+    }),
     method: "delete",
     pathTemplate: "/v1/segments/{segmentId}",
     executionParameters: [{ "name": "segmentId", "in": "path" }],
@@ -483,7 +796,9 @@ identified by the \`segmentId\`.`,
     name: "get-setting",
     description: `This endpoint returns the metadata attributes of a Feature Flag or Setting 
 identified by the \`settingId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "settingId": { "type": "number", "format": "int32", "description": "The identifier of the Setting." } }, "required": ["settingId"] },
+    inputSchema: z.object({
+      settingId: z.number().int().describe("The identifier of the Setting."),
+    }),
     method: "get",
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -495,7 +810,15 @@ identified by the \`settingId\` parameter.
 
 **Important:** As this endpoint is doing a complete replace, it's important to set every other attribute that you don't 
 want to change in its original state. Not listing one means it will reset.`,
-    inputSchema: { "type": "object", "properties": { "settingId": { "type": "number", "format": "int32", "description": "The identifier of the Setting." }, "requestBody": { "type": "object", "properties": { "hint": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "A short description for the setting, shown on the Dashboard UI." }, "tags": { "type": ["array", "null"], "items": { "type": "integer", "format": "int64" }, "description": "The IDs of the tags which are attached to the setting." }, "order": { "type": ["number", "null"], "description": "The order of the Setting represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.", "format": "int32" }, "name": { "maxLength": 255, "minLength": 1, "type": ["string", "null"], "description": "The name of the Feature Flag or Setting." } }, "description": "The JSON request body." } }, "required": ["settingId", "requestBody"] },
+    inputSchema: z.object({
+      settingId: z.number().int().describe("The identifier of the Setting."),
+      requestBody: z.object({
+        hint: z.string().min(0).max(1000).nullable().describe("A short description for the setting, shown on the Dashboard UI."),
+        tags: z.array(z.number().int()).nullable().describe("The IDs of the tags which are attached to the setting."),
+        order: z.number().int().nullable().describe("The order of the Setting represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
+        name: z.string().min(1).max(255).nullable().describe("The name of the Feature Flag or Setting."),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -504,7 +827,9 @@ want to change in its original state. Not listing one means it will reset.`,
     name: "delete-setting",
     description: `This endpoint removes a Feature Flag or Setting from a specified Config, 
 identified by the \`configId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "settingId": { "type": "number", "format": "int32", "description": "The identifier of the Setting." } }, "required": ["settingId"] },
+    inputSchema: z.object({
+      settingId: z.number().int().describe("The identifier of the Setting."),
+    }),
     method: "delete",
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -575,7 +900,15 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "settingId": { "type": "number", "format": "int32", "description": "The identifier of the Setting." }, "requestBody": { "type": "array", "items": { "required": ["op", "path"], "type": "object", "properties": { "op": { "enum": ["unknown", "add", "remove", "replace", "move", "copy", "test"], "type": "string" }, "path": { "minLength": 1, "type": "string", "description": "The source path." }, "from": { "type": ["string", "null"], "description": "The target path." }, "value": { "description": "The discrete value.", "type": "null" } } }, "description": "The JSON request body." } }, "required": ["settingId", "requestBody"] },
+    inputSchema: z.object({
+      settingId: z.number().int().describe("The identifier of the Setting."),
+      requestBody: z.array(z.object({
+        op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]),
+        path: z.string().min(1).describe("The source path."),
+        from: z.string().nullable().describe("The target path."),
+        value: z.any().describe("The discrete value."),
+      })),
+    }),
     method: "patch",
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -584,7 +917,9 @@ So we get a response like this:
     name: "list-settings-by-tag",
     description: `This endpoint returns the list of the Settings that 
 has the specified Tag, identified by the \`tagId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "tagId": { "type": "number", "format": "int64", "description": "The identifier of the Tag." } }, "required": ["tagId"] },
+    inputSchema: z.object({
+      tagId: z.number().int().describe("The identifier of the Tag."),
+    }),
     method: "get",
     pathTemplate: "/v1/tags/{tagId}/settings",
     executionParameters: [{ "name": "tagId", "in": "path" }],
@@ -602,7 +937,10 @@ The \`rolloutRules\` and \`percentageRules\` attributes are representing the cur
 Targeting and Percentage Rules configuration of the actual Feature Flag or Setting 
 in an **ordered** collection, which means the order of the returned rules is matching to the
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview/).`,
-    inputSchema: { "type": "object", "properties": { "settingKeyOrId": { "type": "string", "description": "The key or id of the Setting." }, "X-CONFIGCAT-SDKKEY": { "type": "string", "description": "The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)" } }, "required": ["settingKeyOrId"] },
+    inputSchema: z.object({
+      "settingKeyOrId": z.string().describe("The key or id of the Setting."),
+      "X-CONFIGCAT-SDKKEY": z.string().describe("The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)"),
+    }),
     method: "get",
     pathTemplate: "/v1/settings/{settingKeyOrId}/value",
     executionParameters: [{ "name": "settingKeyOrId", "in": "path" }, { "name": "X-CONFIGCAT-SDKKEY", "in": "header" }],
@@ -649,7 +987,32 @@ So we get a response like this:
   "value": true
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "settingKeyOrId": { "type": "string", "description": "The key or id of the Setting." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "X-CONFIGCAT-SDKKEY": { "type": "string", "description": "The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)" }, "requestBody": { "required": ["value"], "type": "object", "properties": { "rolloutRules": { "type": "array", "items": { "required": ["value"], "type": "object", "properties": { "comparisonAttribute": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The user attribute to compare." }, "comparator": { "allOf": [{ "enum": ["isOneOf", "isNotOneOf", "contains", "doesNotContain", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf"], "type": "string", "description": "The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value." }], "type": "null" }, "comparisonValue": { "type": ["string", "null"], "description": "The value to compare against." }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve when the comparison matches. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." }, "segmentComparator": { "allOf": [{ "enum": ["isIn", "isNotIn"], "type": "string", "description": "The segment comparison operator used during the evaluation process." }], "type": "null" }, "segmentId": { "type": ["string", "null"], "description": "The segment to compare against.", "format": "uuid" } } }, "description": "The targeting rule collection." }, "rolloutPercentageItems": { "type": "array", "items": { "required": ["percentage", "value"], "type": "object", "properties": { "percentage": { "type": "number", "description": "The percentage value for the rule.", "format": "int64" }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve when the user falls in the percentage rule. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." } } }, "description": "The percentage rule collection." }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." } }, "description": "The JSON request body." } }, "required": ["settingKeyOrId", "requestBody"] },
+    inputSchema: z.object({
+      "settingKeyOrId": z.string().describe("The key or id of the Setting."),
+      "reason": z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
+      "X-CONFIGCAT-SDKKEY": z.string().describe("The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)"),
+      "requestBody": z.object({
+        rolloutRules: z.array(z.object({
+          comparisonAttribute: z.string().min(0).max(1000).nullable().describe("The user attribute to compare."),
+          comparator: z.enum([
+            "isOneOf", "isNotOneOf", "contains", "doesNotContain",
+            "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals",
+            "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual",
+            "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals",
+            "sensitiveIsOneOf", "sensitiveIsNotOneOf",
+          ]).nullable().describe("The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value."),
+          comparisonValue: z.string().nullable().describe("The value to compare against."),
+          value: z.union([z.boolean(), z.string(), z.number()]).describe("The value to serve when the comparison matches. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
+          segmentComparator: z.enum(["isIn", "isNotIn"]).nullable().describe("The segment comparison operator used during the evaluation process."),
+          segmentId: z.string().uuid().nullable().describe("The segment to compare against."),
+        })).describe("The targeting rule collection."),
+        rolloutPercentageItems: z.array(z.object({
+          percentage: z.number().int().describe("The percentage value for the rule."),
+          value: z.union([z.boolean(), z.string(), z.number()]).describe("The value to serve when the user falls in the percentage rule. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
+        })).describe("The percentage rule collection."),
+        value: z.union([z.boolean(), z.string(), z.number()]).describe("The value to serve. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/settings/{settingKeyOrId}/value",
     executionParameters: [{ "name": "settingKeyOrId", "in": "path" }, { "name": "reason", "in": "query" }, { "name": "X-CONFIGCAT-SDKKEY", "in": "header" }],
@@ -711,7 +1074,17 @@ So we get a response like this:
   "value": true
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "settingKeyOrId": { "type": "string", "description": "The key or id of the Setting." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "X-CONFIGCAT-SDKKEY": { "type": "string", "description": "The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)" }, "requestBody": { "type": "array", "items": { "required": ["op", "path"], "type": "object", "properties": { "op": { "enum": ["unknown", "add", "remove", "replace", "move", "copy", "test"], "type": "string" }, "path": { "minLength": 1, "type": "string", "description": "The source path." }, "from": { "type": ["string", "null"], "description": "The target path." }, "value": { "description": "The discrete value.", "type": "null" } } }, "description": "The JSON request body." } }, "required": ["settingKeyOrId", "requestBody"] },
+    inputSchema: z.object({
+      "settingKeyOrId": z.string().describe("The key or id of the Setting."),
+      "reason": z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
+      "X-CONFIGCAT-SDKKEY": z.string().describe("The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)"),
+      "requestBody": z.array(z.object({
+        op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]),
+        path: z.string().min(1).describe("The source path."),
+        from: z.string().nullable().describe("The target path."),
+        value: z.any().describe("The discrete value."),
+      })),
+    }),
     method: "patch",
     pathTemplate: "/v1/settings/{settingKeyOrId}/value",
     executionParameters: [{ "name": "settingKeyOrId", "in": "path" }, { "name": "reason", "in": "query" }, { "name": "X-CONFIGCAT-SDKKEY", "in": "header" }],
@@ -729,7 +1102,10 @@ The \`rolloutRules\` and \`percentageRules\` attributes are representing the cur
 Targeting and Percentage Rules configuration of the actual Feature Flag or Setting 
 in an **ordered** collection, which means the order of the returned rules is matching to the
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview).`,
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." } }, "required": ["environmentId", "settingId"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+      settingId: z.number().int().describe("The id of the Setting."),
+    }),
     method: "get",
     pathTemplate: "/v1/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }],
@@ -780,7 +1156,32 @@ The \`rolloutRules\` property describes two types of rules:
 
 - **Targeting rules**: When you want to add or update a targeting rule, the \`comparator\`, \`comparisonAttribute\`, and \`comparisonValue\` members are required.
 - **Segment rules**: When you want to add add or update a segment rule, the \`segmentId\` which identifies the desired segment and the \`segmentComparator\` members are required.`,
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "requestBody": { "required": ["value"], "type": "object", "properties": { "rolloutRules": { "type": "array", "items": { "required": ["value"], "type": "object", "properties": { "comparisonAttribute": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The user attribute to compare." }, "comparator": { "allOf": [{ "enum": ["isOneOf", "isNotOneOf", "contains", "doesNotContain", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf"], "type": "string", "description": "The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value." }], "type": "null" }, "comparisonValue": { "type": ["string", "null"], "description": "The value to compare against." }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve when the comparison matches. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." }, "segmentComparator": { "allOf": [{ "enum": ["isIn", "isNotIn"], "type": "string", "description": "The segment comparison operator used during the evaluation process." }], "type": "null" }, "segmentId": { "type": ["string", "null"], "description": "The segment to compare against.", "format": "uuid" } } }, "description": "The targeting rule collection." }, "rolloutPercentageItems": { "type": "array", "items": { "required": ["percentage", "value"], "type": "object", "properties": { "percentage": { "type": "number", "description": "The percentage value for the rule.", "format": "int64" }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve when the user falls in the percentage rule. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." } } }, "description": "The percentage rule collection." }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." } }, "description": "The JSON request body." } }, "required": ["environmentId", "settingId", "requestBody"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+      settingId: z.number().int().describe("The id of the Setting."),
+      reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
+      requestBody: z.object({
+        rolloutRules: z.array(z.object({
+          comparisonAttribute: z.string().min(0).max(1000).nullable().describe("The user attribute to compare."),
+          comparator: z.enum([
+            "isOneOf", "isNotOneOf", "contains", "doesNotContain",
+            "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals",
+            "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual",
+            "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals",
+            "sensitiveIsOneOf", "sensitiveIsNotOneOf",
+          ]).nullable().describe("The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value."),
+          comparisonValue: z.string().nullable().describe("The value to compare against."),
+          value: z.union([z.boolean(), z.string(), z.number()]).describe("The value to serve when the comparison matches. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
+          segmentComparator: z.enum(["isIn", "isNotIn"]).nullable().describe("The segment comparison operator used during the evaluation process."),
+          segmentId: z.string().uuid().nullable().describe("The segment to compare against."),
+        })).describe("The targeting rule collection."),
+        rolloutPercentageItems: z.array(z.object({
+          percentage: z.number().int().describe("The percentage value for the rule."),
+          value: z.union([z.boolean(), z.string(), z.number()]).describe("The value to serve when the user falls in the percentage rule. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
+        })).describe("The percentage rule collection."),
+        value: z.union([z.boolean(), z.string(), z.number()]).describe("The value to serve. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -846,7 +1247,17 @@ The \`rolloutRules\` property describes two types of rules:
 
 - **Targeting rules**: When you want to add or update a targeting rule, the \`comparator\`, \`comparisonAttribute\`, and \`comparisonValue\` members are required.
 - **Segment rules**: When you want to add add or update a segment rule, the \`segmentId\` which identifies the desired segment and the \`segmentComparator\` members are required.`,
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "requestBody": { "type": "array", "items": { "required": ["op", "path"], "type": "object", "properties": { "op": { "enum": ["unknown", "add", "remove", "replace", "move", "copy", "test"], "type": "string" }, "path": { "minLength": 1, "type": "string", "description": "The source path." }, "from": { "type": ["string", "null"], "description": "The target path." }, "value": { "description": "The discrete value.", "type": "null" } } }, "description": "The JSON request body." } }, "required": ["environmentId", "settingId", "requestBody"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid(),
+      settingId: z.number().int(),
+      reason: z.string().optional(),
+      requestBody: z.array(z.object({
+        op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]),
+        path: z.string().min(1),
+        from: z.string().nullable().optional(),
+        value: z.null().optional(),
+      })),
+    }),
     method: "patch",
     pathTemplate: "/v1/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -866,7 +1277,10 @@ in an **ordered** collection, which means the order of the returned rules is mat
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview/).
 
 The \`percentageEvaluationAttribute\` represents the custom [User Object](https://configcat.com/docs/targeting/user-object/) attribute that must be used at the [percentage evaluation](https://configcat.com/docs/advanced/targeting/#anatomy-of-the-percentage-based-targeting) of the Feature Flag or Setting.`,
-    inputSchema: { "type": "object", "properties": { "settingKeyOrId": { "type": "string", "description": "The key or id of the Setting." }, "X-CONFIGCAT-SDKKEY": { "type": "string", "description": "The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)" } }, "required": ["settingKeyOrId"] },
+    inputSchema: z.object({
+      "settingKeyOrId": z.string().describe("The key or id of the Setting."),
+      "X-CONFIGCAT-SDKKEY": z.string().describe("The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)"),
+    }),
     method: "get",
     pathTemplate: "/v2/settings/{settingKeyOrId}/value",
     executionParameters: [{ "name": "settingKeyOrId", "in": "path" }, { "name": "X-CONFIGCAT-SDKKEY", "in": "header" }],
@@ -926,7 +1340,65 @@ So we get a response like this:
   "targetingRules": []
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "settingKeyOrId": { "type": "string", "description": "The key or id of the Setting." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "X-CONFIGCAT-SDKKEY": { "type": "string", "description": "The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)" }, "requestBody": { "required": ["defaultValue"], "type": "object", "properties": { "defaultValue": { "type": "object", "properties": { "boolValue": { "type": ["boolean", "null"], "description": "The served value in case of a boolean Feature Flag." }, "stringValue": { "type": ["string", "null"], "description": "The served value in case of a text Setting." }, "intValue": { "type": ["number", "null"], "description": "The served value in case of a whole number Setting.", "format": "int32" }, "doubleValue": { "type": ["number", "null"], "description": "The served value in case of a decimal number Setting.", "format": "double" } }, "description": "Represents the value of a Feature Flag or Setting." }, "targetingRules": { "type": ["array", "null"], "items": { "type": "object", "properties": { "conditions": { "type": "array", "items": { "type": "object", "properties": { "userCondition": { "allOf": [{ "required": ["comparator", "comparisonAttribute", "comparisonValue"], "type": "object", "properties": { "comparisonAttribute": { "maxLength": 1000, "minLength": 1, "type": "string", "description": "The User Object attribute that the condition is based on. Can be \"User ID\", \"Email\", \"Country\" or any custom attribute." }, "comparator": { "enum": ["isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals", "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf", "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf", "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf", "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf", "arrayDoesNotContainAnyOf"], "type": "string", "description": "The comparison operator which defines the relation between the comparison attribute and the comparison value." }, "comparisonValue": { "type": "object", "properties": { "stringValue": { "type": "string", "description": "The string representation of the comparison value.", "nullable": true }, "doubleValue": { "type": "number", "description": "The number representation of the comparison value.", "format": "double", "nullable": true }, "listValue": { "type": "array", "items": { "required": ["value"], "type": "object", "properties": { "value": { "type": "string", "description": "The actual comparison value." }, "hint": { "maxLength": 1500, "minLength": 0, "type": "string", "description": "An optional hint for the comparison value.", "nullable": true } } }, "description": "The list representation of the comparison value.", "nullable": true } }, "description": "The value that the user object's attribute is compared to." } }, "description": "Describes a condition that is based on user attributes." }], "nullable": true }, "segmentCondition": { "allOf": [{ "required": ["comparator", "segmentId"], "type": "object", "properties": { "segmentId": { "type": "string", "description": "The segment's identifier.", "format": "uuid" }, "comparator": { "enum": ["isIn", "isNotIn"], "type": "string", "description": "The segment comparison operator used during the evaluation process." } }, "description": "Describes a condition that is based on a segment." }], "nullable": true }, "prerequisiteFlagCondition": { "allOf": [{ "required": ["comparator", "prerequisiteComparisonValue", "prerequisiteSettingId"], "type": "object", "properties": { "prerequisiteSettingId": { "type": "integer", "description": "The prerequisite flag's identifier.", "format": "int32" }, "comparator": { "enum": ["equals", "doesNotEqual"], "type": "string", "description": "Prerequisite flag comparison operator used during the evaluation process." }, "prerequisiteComparisonValue": { "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." } }, "description": "Describes a condition that is based on a prerequisite flag." }], "nullable": true } } }, "description": "The list of conditions that are combined with logical AND operators.\nIt can be one of the following:\n- User condition\n- Segment condition\n- Prerequisite flag condition", "nullable": true }, "percentageOptions": { "type": "array", "items": { "required": ["percentage", "value"], "type": "object", "properties": { "percentage": { "type": "integer", "description": "A number between 0 and 100 that represents a randomly allocated fraction of the users.", "format": "int32" }, "value": { "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." } } }, "description": "The percentage options from where the evaluation process will choose a value based on the flag's percentage evaluation attribute.", "nullable": true }, "value": { "allOf": [{ "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." }], "nullable": true } } }, "description": "The targeting rules of the Feature Flag or Setting." }, "percentageEvaluationAttribute": { "maxLength": 1000, "type": ["string", "null"], "description": "The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute." } }, "description": "The JSON request body." } }, "required": ["settingKeyOrId", "requestBody"] },
+    inputSchema: z.object({
+      "settingKeyOrId": z.string(),
+      "reason": z.string().optional(),
+      "X-CONFIGCAT-SDKKEY": z.string(),
+      "requestBody": z.object({
+        defaultValue: z.object({
+          boolValue: z.boolean().nullable().optional(),
+          stringValue: z.string().nullable().optional(),
+          intValue: z.number().int().nullable().optional(),
+          doubleValue: z.number().nullable().optional(),
+        }),
+        targetingRules: z.array(z.object({
+          conditions: z.array(z.object({
+            userCondition: z.object({
+              comparisonAttribute: z.string().min(1).max(1000),
+              comparator: z.enum(["isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals", "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf", "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf", "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf", "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf", "arrayDoesNotContainAnyOf"]),
+              comparisonValue: z.object({
+                stringValue: z.string().nullable().optional(),
+                doubleValue: z.number().nullable().optional(),
+                listValue: z.array(z.object({
+                  value: z.string(),
+                  hint: z.string().min(0).max(1500).nullable().optional(),
+                })).nullable().optional(),
+              }),
+            }).nullable().optional(),
+            segmentCondition: z.object({
+              segmentId: z.string().uuid(),
+              comparator: z.enum(["isIn", "isNotIn"]),
+            }).nullable().optional(),
+            prerequisiteFlagCondition: z.object({
+              prerequisiteSettingId: z.number().int(),
+              comparator: z.enum(["equals", "doesNotEqual"]),
+              prerequisiteComparisonValue: z.object({
+                boolValue: z.boolean().nullable().optional(),
+                stringValue: z.string().nullable().optional(),
+                intValue: z.number().int().nullable().optional(),
+                doubleValue: z.number().nullable().optional(),
+              }),
+            }).nullable().optional(),
+          })).nullable().optional(),
+          percentageOptions: z.array(z.object({
+            percentage: z.number().int(),
+            value: z.object({
+              boolValue: z.boolean().nullable().optional(),
+              stringValue: z.string().nullable().optional(),
+              intValue: z.number().int().nullable().optional(),
+              doubleValue: z.number().nullable().optional(),
+            }),
+          })).nullable().optional(),
+          value: z.object({
+            boolValue: z.boolean().nullable().optional(),
+            stringValue: z.string().nullable().optional(),
+            intValue: z.number().int().nullable().optional(),
+            doubleValue: z.number().nullable().optional(),
+          }).nullable().optional(),
+        })).nullable().optional(),
+        percentageEvaluationAttribute: z.string().max(1000).nullable().optional(),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v2/settings/{settingKeyOrId}/value",
     executionParameters: [{ "name": "settingKeyOrId", "in": "path" }, { "name": "reason", "in": "query" }, { "name": "X-CONFIGCAT-SDKKEY", "in": "header" }],
@@ -1008,7 +1480,17 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "settingKeyOrId": { "type": "string", "description": "The key or id of the Setting." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "X-CONFIGCAT-SDKKEY": { "type": "string", "description": "The ConfigCat SDK Key. (https://app.configcat.com/sdkkey)" }, "requestBody": { "type": "array", "items": { "required": ["op", "path"], "type": "object", "properties": { "op": { "enum": ["unknown", "add", "remove", "replace", "move", "copy", "test"], "type": "string" }, "path": { "minLength": 1, "type": "string", "description": "The source path." }, "from": { "type": ["string", "null"], "description": "The target path." }, "value": { "description": "The discrete value.", "type": "null" } } }, "description": "The JSON request body." } }, "required": ["settingKeyOrId", "requestBody"] },
+    inputSchema: z.object({
+      "settingKeyOrId": z.string(),
+      "reason": z.string().optional(),
+      "X-CONFIGCAT-SDKKEY": z.string(),
+      "requestBody": z.array(z.object({
+        op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]),
+        path: z.string().min(1),
+        from: z.string().nullable().optional(),
+        value: z.null().optional(),
+      })),
+    }),
     method: "patch",
     pathTemplate: "/v2/settings/{settingKeyOrId}/value",
     executionParameters: [{ "name": "settingKeyOrId", "in": "path" }, { "name": "reason", "in": "query" }, { "name": "X-CONFIGCAT-SDKKEY", "in": "header" }],
@@ -1028,7 +1510,10 @@ in an **ordered** collection, which means the order of the returned rules is mat
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview/).
 
 The \`percentageEvaluationAttribute\` represents the custom [User Object](https://configcat.com/docs/targeting/user-object/) attribute that must be used for [percentage evaluation](https://configcat.com/docs/targeting/percentage-options/) of the Feature Flag or Setting.`,
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." } }, "required": ["environmentId", "settingId"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+      settingId: z.number().int().describe("The id of the Setting."),
+    }),
     method: "get",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }],
@@ -1088,7 +1573,65 @@ So we get a response like this:
   "targetingRules": []
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "requestBody": { "required": ["defaultValue"], "type": "object", "properties": { "defaultValue": { "type": "object", "properties": { "boolValue": { "type": ["boolean", "null"], "description": "The served value in case of a boolean Feature Flag." }, "stringValue": { "type": ["string", "null"], "description": "The served value in case of a text Setting." }, "intValue": { "type": ["number", "null"], "description": "The served value in case of a whole number Setting.", "format": "int32" }, "doubleValue": { "type": ["number", "null"], "description": "The served value in case of a decimal number Setting.", "format": "double" } }, "description": "Represents the value of a Feature Flag or Setting." }, "targetingRules": { "type": ["array", "null"], "items": { "type": "object", "properties": { "conditions": { "type": "array", "items": { "type": "object", "properties": { "userCondition": { "allOf": [{ "required": ["comparator", "comparisonAttribute", "comparisonValue"], "type": "object", "properties": { "comparisonAttribute": { "maxLength": 1000, "minLength": 1, "type": "string", "description": "The User Object attribute that the condition is based on. Can be \"User ID\", \"Email\", \"Country\" or any custom attribute." }, "comparator": { "enum": ["isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals", "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf", "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf", "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf", "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf", "arrayDoesNotContainAnyOf"], "type": "string", "description": "The comparison operator which defines the relation between the comparison attribute and the comparison value." }, "comparisonValue": { "type": "object", "properties": { "stringValue": { "type": "string", "description": "The string representation of the comparison value.", "nullable": true }, "doubleValue": { "type": "number", "description": "The number representation of the comparison value.", "format": "double", "nullable": true }, "listValue": { "type": "array", "items": { "required": ["value"], "type": "object", "properties": { "value": { "type": "string", "description": "The actual comparison value." }, "hint": { "maxLength": 1500, "minLength": 0, "type": "string", "description": "An optional hint for the comparison value.", "nullable": true } } }, "description": "The list representation of the comparison value.", "nullable": true } }, "description": "The value that the user object's attribute is compared to." } }, "description": "Describes a condition that is based on user attributes." }], "nullable": true }, "segmentCondition": { "allOf": [{ "required": ["comparator", "segmentId"], "type": "object", "properties": { "segmentId": { "type": "string", "description": "The segment's identifier.", "format": "uuid" }, "comparator": { "enum": ["isIn", "isNotIn"], "type": "string", "description": "The segment comparison operator used during the evaluation process." } }, "description": "Describes a condition that is based on a segment." }], "nullable": true }, "prerequisiteFlagCondition": { "allOf": [{ "required": ["comparator", "prerequisiteComparisonValue", "prerequisiteSettingId"], "type": "object", "properties": { "prerequisiteSettingId": { "type": "integer", "description": "The prerequisite flag's identifier.", "format": "int32" }, "comparator": { "enum": ["equals", "doesNotEqual"], "type": "string", "description": "Prerequisite flag comparison operator used during the evaluation process." }, "prerequisiteComparisonValue": { "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." } }, "description": "Describes a condition that is based on a prerequisite flag." }], "nullable": true } } }, "description": "The list of conditions that are combined with logical AND operators.\nIt can be one of the following:\n- User condition\n- Segment condition\n- Prerequisite flag condition", "nullable": true }, "percentageOptions": { "type": "array", "items": { "required": ["percentage", "value"], "type": "object", "properties": { "percentage": { "type": "integer", "description": "A number between 0 and 100 that represents a randomly allocated fraction of the users.", "format": "int32" }, "value": { "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." } } }, "description": "The percentage options from where the evaluation process will choose a value based on the flag's percentage evaluation attribute.", "nullable": true }, "value": { "allOf": [{ "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." }], "nullable": true } } }, "description": "The targeting rules of the Feature Flag or Setting." }, "percentageEvaluationAttribute": { "maxLength": 1000, "type": ["string", "null"], "description": "The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute." } }, "description": "The JSON request body." } }, "required": ["environmentId", "settingId", "requestBody"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid(),
+      settingId: z.number().int(),
+      reason: z.string().optional(),
+      requestBody: z.object({
+        defaultValue: z.object({
+          boolValue: z.boolean().nullable().optional(),
+          stringValue: z.string().nullable().optional(),
+          intValue: z.number().int().nullable().optional(),
+          doubleValue: z.number().nullable().optional(),
+        }),
+        targetingRules: z.array(z.object({
+          conditions: z.array(z.object({
+            userCondition: z.object({
+              comparisonAttribute: z.string().min(1).max(1000),
+              comparator: z.enum(["isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals", "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf", "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf", "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf", "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf", "arrayDoesNotContainAnyOf"]),
+              comparisonValue: z.object({
+                stringValue: z.string().nullable().optional(),
+                doubleValue: z.number().nullable().optional(),
+                listValue: z.array(z.object({
+                  value: z.string(),
+                  hint: z.string().min(0).max(1500).nullable().optional(),
+                })).nullable().optional(),
+              }),
+            }).nullable().optional(),
+            segmentCondition: z.object({
+              segmentId: z.string().uuid(),
+              comparator: z.enum(["isIn", "isNotIn"]),
+            }).nullable().optional(),
+            prerequisiteFlagCondition: z.object({
+              prerequisiteSettingId: z.number().int(),
+              comparator: z.enum(["equals", "doesNotEqual"]),
+              prerequisiteComparisonValue: z.object({
+                boolValue: z.boolean().nullable().optional(),
+                stringValue: z.string().nullable().optional(),
+                intValue: z.number().int().nullable().optional(),
+                doubleValue: z.number().nullable().optional(),
+              }),
+            }).nullable().optional(),
+          })).nullable().optional(),
+          percentageOptions: z.array(z.object({
+            percentage: z.number().int(),
+            value: z.object({
+              boolValue: z.boolean().nullable().optional(),
+              stringValue: z.string().nullable().optional(),
+              intValue: z.number().int().nullable().optional(),
+              doubleValue: z.number().nullable().optional(),
+            }),
+          })).nullable().optional(),
+          value: z.object({
+            boolValue: z.boolean().nullable().optional(),
+            stringValue: z.string().nullable().optional(),
+            intValue: z.number().int().nullable().optional(),
+            doubleValue: z.number().nullable().optional(),
+          }).nullable().optional(),
+        })).nullable().optional(),
+        percentageEvaluationAttribute: z.string().max(1000).nullable().optional(),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1170,7 +1713,17 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "settingId": { "type": "number", "format": "int32", "description": "The id of the Setting." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "requestBody": { "type": "array", "items": { "required": ["op", "path"], "type": "object", "properties": { "op": { "enum": ["unknown", "add", "remove", "replace", "move", "copy", "test"], "type": "string" }, "path": { "minLength": 1, "type": "string", "description": "The source path." }, "from": { "type": ["string", "null"], "description": "The target path." }, "value": { "description": "The discrete value.", "type": "null" } } }, "description": "The JSON request body." } }, "required": ["environmentId", "settingId", "requestBody"] },
+    inputSchema: z.object({
+      environmentId: z.string().uuid(),
+      settingId: z.number().int(),
+      reason: z.string().optional(),
+      requestBody: z.array(z.object({
+        op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]),
+        path: z.string().min(1),
+        from: z.string().nullable().optional(),
+        value: z.null().optional(),
+      })),
+    }),
     method: "patch",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1188,7 +1741,10 @@ The \`rolloutRules\` and \`percentageRules\` attributes are representing the cur
 Targeting and Percentage Rules configuration of the actual Feature Flag or Setting 
 in an **ordered** collection, which means the order of the returned rules is matching to the
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview/).`,
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." } }, "required": ["configId", "environmentId"] },
+    inputSchema: z.object({
+      configId: z.string().uuid().describe("The identifier of the Config."),
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+    }),
     method: "get",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}/values",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
@@ -1258,7 +1814,29 @@ The \`rolloutRules\` property describes two types of rules:
 
 - **Targeting rules**: When you want to add or update a targeting rule, the \`comparator\`, \`comparisonAttribute\`, and \`comparisonValue\` members are required.
 - **Segment rules**: When you want to add add or update a segment rule, the \`segmentId\` which identifies the desired segment and the \`segmentComparator\` members are required.`,
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "requestBody": { "type": "object", "properties": { "settingValues": { "type": "array", "items": { "required": ["value"], "type": "object", "properties": { "rolloutRules": { "type": "array", "items": { "required": ["value"], "type": "object", "properties": { "comparisonAttribute": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The user attribute to compare." }, "comparator": { "allOf": [{ "enum": ["isOneOf", "isNotOneOf", "contains", "doesNotContain", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf"], "type": "string", "description": "The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value." }], "type": "null" }, "comparisonValue": { "type": ["string", "null"], "description": "The value to compare against." }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve when the comparison matches. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." }, "segmentComparator": { "allOf": [{ "enum": ["isIn", "isNotIn"], "type": "string", "description": "The segment comparison operator used during the evaluation process." }], "type": "null" }, "segmentId": { "type": ["string", "null"], "description": "The segment to compare against.", "format": "uuid" } } }, "description": "The targeting rule collection." }, "rolloutPercentageItems": { "type": "array", "items": { "required": ["percentage", "value"], "type": "object", "properties": { "percentage": { "type": "number", "description": "The percentage value for the rule.", "format": "int64" }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve when the user falls in the percentage rule. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." } } }, "description": "The percentage rule collection." }, "value": { "allOf": [{ "oneOf": [{ "type": "boolean" }, { "type": "string" }, { "type": "number", "format": "double" }] }], "description": "The value to serve. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values." }, "settingId": { "type": "number", "description": "The id of the Setting.", "format": "int32" } } }, "description": "The values to update." } }, "description": "The JSON request body." } }, "required": ["configId", "environmentId", "requestBody"] },
+    inputSchema: z.object({
+      configId: z.string().uuid(),
+      environmentId: z.string().uuid(),
+      reason: z.string().optional(),
+      requestBody: z.object({
+        settingValues: z.array(z.object({
+          rolloutRules: z.array(z.object({
+            comparisonAttribute: z.string().min(0).max(1000).nullable().optional(),
+            comparator: z.enum(["isOneOf", "isNotOneOf", "contains", "doesNotContain", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf"]).nullable().optional(),
+            comparisonValue: z.string().nullable().optional(),
+            value: z.union([z.boolean(), z.string(), z.number()]),
+            segmentComparator: z.enum(["isIn", "isNotIn"]).nullable().optional(),
+            segmentId: z.string().uuid().nullable().optional(),
+          })).optional(),
+          rolloutPercentageItems: z.array(z.object({
+            percentage: z.number().int(),
+            value: z.union([z.boolean(), z.string(), z.number()]),
+          })).optional(),
+          value: z.union([z.boolean(), z.string(), z.number()]),
+          settingId: z.number().int(),
+        })),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}/values",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1278,7 +1856,10 @@ in an **ordered** collection, which means the order of the returned rules is mat
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview/).
 
 The \`percentageEvaluationAttribute\` represents the custom [User Object](https://configcat.com/docs/targeting/user-object/) attribute that must be used for [percentage evaluation](https://configcat.com/docs/targeting/percentage-options/) of the Feature Flag or Setting.`,
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." } }, "required": ["configId", "environmentId"] },
+    inputSchema: z.object({
+      configId: z.string().uuid().describe("The identifier of the Config."),
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+    }),
     method: "get",
     pathTemplate: "/v2/configs/{configId}/environments/{environmentId}/values",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
@@ -1356,7 +1937,68 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "reason": { "type": "string", "description": "The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on." }, "requestBody": { "type": "object", "properties": { "updateFormulas": { "type": "array", "items": { "required": ["defaultValue"], "type": "object", "properties": { "defaultValue": { "type": "object", "properties": { "boolValue": { "type": ["boolean", "null"], "description": "The served value in case of a boolean Feature Flag." }, "stringValue": { "type": ["string", "null"], "description": "The served value in case of a text Setting." }, "intValue": { "type": ["number", "null"], "description": "The served value in case of a whole number Setting.", "format": "int32" }, "doubleValue": { "type": ["number", "null"], "description": "The served value in case of a decimal number Setting.", "format": "double" } }, "description": "Represents the value of a Feature Flag or Setting." }, "targetingRules": { "type": ["array", "null"], "items": { "type": "object", "properties": { "conditions": { "type": "array", "items": { "type": "object", "properties": { "userCondition": { "allOf": [{ "required": ["comparator", "comparisonAttribute", "comparisonValue"], "type": "object", "properties": { "comparisonAttribute": { "maxLength": 1000, "minLength": 1, "type": "string", "description": "The User Object attribute that the condition is based on. Can be \"User ID\", \"Email\", \"Country\" or any custom attribute." }, "comparator": { "enum": ["isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals", "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf", "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf", "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf", "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf", "arrayDoesNotContainAnyOf"], "type": "string", "description": "The comparison operator which defines the relation between the comparison attribute and the comparison value." }, "comparisonValue": { "type": "object", "properties": { "stringValue": { "type": "string", "description": "The string representation of the comparison value.", "nullable": true }, "doubleValue": { "type": "number", "description": "The number representation of the comparison value.", "format": "double", "nullable": true }, "listValue": { "type": "array", "items": { "required": ["value"], "type": "object", "properties": { "value": { "type": "string", "description": "The actual comparison value." }, "hint": { "maxLength": 1500, "minLength": 0, "type": "string", "description": "An optional hint for the comparison value.", "nullable": true } } }, "description": "The list representation of the comparison value.", "nullable": true } }, "description": "The value that the user object's attribute is compared to." } }, "description": "Describes a condition that is based on user attributes." }], "nullable": true }, "segmentCondition": { "allOf": [{ "required": ["comparator", "segmentId"], "type": "object", "properties": { "segmentId": { "type": "string", "description": "The segment's identifier.", "format": "uuid" }, "comparator": { "enum": ["isIn", "isNotIn"], "type": "string", "description": "The segment comparison operator used during the evaluation process." } }, "description": "Describes a condition that is based on a segment." }], "nullable": true }, "prerequisiteFlagCondition": { "allOf": [{ "required": ["comparator", "prerequisiteComparisonValue", "prerequisiteSettingId"], "type": "object", "properties": { "prerequisiteSettingId": { "type": "integer", "description": "The prerequisite flag's identifier.", "format": "int32" }, "comparator": { "enum": ["equals", "doesNotEqual"], "type": "string", "description": "Prerequisite flag comparison operator used during the evaluation process." }, "prerequisiteComparisonValue": { "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." } }, "description": "Describes a condition that is based on a prerequisite flag." }], "nullable": true } } }, "description": "The list of conditions that are combined with logical AND operators.\nIt can be one of the following:\n- User condition\n- Segment condition\n- Prerequisite flag condition", "nullable": true }, "percentageOptions": { "type": "array", "items": { "required": ["percentage", "value"], "type": "object", "properties": { "percentage": { "type": "integer", "description": "A number between 0 and 100 that represents a randomly allocated fraction of the users.", "format": "int32" }, "value": { "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." } } }, "description": "The percentage options from where the evaluation process will choose a value based on the flag's percentage evaluation attribute.", "nullable": true }, "value": { "allOf": [{ "type": "object", "properties": { "boolValue": { "type": "boolean", "description": "The served value in case of a boolean Feature Flag.", "nullable": true }, "stringValue": { "type": "string", "description": "The served value in case of a text Setting.", "nullable": true }, "intValue": { "type": "integer", "description": "The served value in case of a whole number Setting.", "format": "int32", "nullable": true }, "doubleValue": { "type": "number", "description": "The served value in case of a decimal number Setting.", "format": "double", "nullable": true } }, "description": "Represents the value of a Feature Flag or Setting." }], "nullable": true } } }, "description": "The targeting rules of the Feature Flag or Setting." }, "percentageEvaluationAttribute": { "maxLength": 1000, "type": ["string", "null"], "description": "The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute." }, "settingId": { "type": "number", "description": "The identifier of the feature flag or setting.", "format": "int32" } } }, "description": "Evaluation descriptors of each updated Feature Flag and Setting." } }, "description": "The JSON request body." } }, "required": ["configId", "environmentId", "requestBody"] },
+    inputSchema: z.object({
+      configId: z.string().uuid(),
+      environmentId: z.string().uuid(),
+      reason: z.string().optional(),
+      requestBody: z.object({
+        updateFormulas: z.array(z.object({
+          defaultValue: z.object({
+            boolValue: z.boolean().nullable().optional(),
+            stringValue: z.string().nullable().optional(),
+            intValue: z.number().int().nullable().optional(),
+            doubleValue: z.number().nullable().optional(),
+          }),
+          targetingRules: z.array(z.object({
+            conditions: z.array(z.object({
+              userCondition: z.object({
+                comparisonAttribute: z.string().min(1).max(1000),
+                comparator: z.enum(["isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals", "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf", "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf", "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf", "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf", "arrayDoesNotContainAnyOf"]),
+                comparisonValue: z.object({
+                  stringValue: z.string().nullable().optional(),
+                  doubleValue: z.number().nullable().optional(),
+                  listValue: z.array(z.object({
+                    value: z.string(),
+                    hint: z.string().min(0).max(1500).nullable().optional(),
+                  })).nullable().optional(),
+                }),
+              }).nullable().optional(),
+              segmentCondition: z.object({
+                segmentId: z.string().uuid(),
+                comparator: z.enum(["isIn", "isNotIn"]),
+              }).nullable().optional(),
+              prerequisiteFlagCondition: z.object({
+                prerequisiteSettingId: z.number().int(),
+                comparator: z.enum(["equals", "doesNotEqual"]),
+                prerequisiteComparisonValue: z.object({
+                  boolValue: z.boolean().nullable().optional(),
+                  stringValue: z.string().nullable().optional(),
+                  intValue: z.number().int().nullable().optional(),
+                  doubleValue: z.number().nullable().optional(),
+                }),
+              }).nullable().optional(),
+            })).nullable().optional(),
+            percentageOptions: z.array(z.object({
+              percentage: z.number().int(),
+              value: z.object({
+                boolValue: z.boolean().nullable().optional(),
+                stringValue: z.string().nullable().optional(),
+                intValue: z.number().int().nullable().optional(),
+                doubleValue: z.number().nullable().optional(),
+              }),
+            })).nullable().optional(),
+            value: z.object({
+              boolValue: z.boolean().nullable().optional(),
+              stringValue: z.string().nullable().optional(),
+              intValue: z.number().int().nullable().optional(),
+              doubleValue: z.number().nullable().optional(),
+            }).nullable().optional(),
+          })).nullable().optional(),
+          percentageEvaluationAttribute: z.string().max(1000).nullable().optional(),
+          settingId: z.number().int(),
+        })),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v2/configs/{configId}/environments/{environmentId}/values",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1365,7 +2007,9 @@ So we get a response like this:
     name: "get-tag",
     description: `This endpoint returns the metadata of a Tag 
 identified by the \`tagId\`.`,
-    inputSchema: { "type": "object", "properties": { "tagId": { "type": "number", "format": "int64", "description": "The identifier of the Tag." } }, "required": ["tagId"] },
+    inputSchema: z.object({
+      tagId: z.number().int().describe("The identifier of the Tag."),
+    }),
     method: "get",
     pathTemplate: "/v1/tags/{tagId}",
     executionParameters: [{ "name": "tagId", "in": "path" }],
@@ -1373,7 +2017,13 @@ identified by the \`tagId\`.`,
   ["update-tag", {
     name: "update-tag",
     description: "This endpoint updates a Tag identified by the `tagId` parameter.",
-    inputSchema: { "type": "object", "properties": { "tagId": { "type": "number", "format": "int64", "description": "The identifier of the Tag." }, "requestBody": { "type": "object", "properties": { "name": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "Name of the Tag." }, "color": { "maxLength": 255, "minLength": 0, "type": ["string", "null"], "description": "Color of the Tag. Possible values: `panther`, `whale`, `salmon`, `lizard`, `canary`, `koala`, or any HTML color code." } }, "description": "The JSON request body." } }, "required": ["tagId", "requestBody"] },
+    inputSchema: z.object({
+      tagId: z.number().int(),
+      requestBody: z.object({
+        name: z.string().min(0).max(255).nullable().optional(),
+        color: z.string().min(0).max(255).nullable().optional(),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/tags/{tagId}",
     executionParameters: [{ "name": "tagId", "in": "path" }],
@@ -1381,7 +2031,9 @@ identified by the \`tagId\`.`,
   ["delete-tag", {
     name: "delete-tag",
     description: "This endpoint deletes a Tag identified by the `tagId` parameter. To remove a Tag from a Feature Flag or Setting use the [Update Flag](#operation/update-setting) endpoint.",
-    inputSchema: { "type": "object", "properties": { "tagId": { "type": "number", "format": "int64", "description": "The identifier of the Tag." } }, "required": ["tagId"] },
+    inputSchema: z.object({
+      tagId: z.number().int().describe("The identifier of the Tag."),
+    }),
     method: "delete",
     pathTemplate: "/v1/tags/{tagId}",
     executionParameters: [{ "name": "tagId", "in": "path" }],
@@ -1390,7 +2042,9 @@ identified by the \`tagId\`.`,
     name: "get-webhook",
     description: `This endpoint returns the metadata of a Webhook 
 identified by the \`webhookId\`.`,
-    inputSchema: { "type": "object", "properties": { "webhookId": { "type": "number", "format": "int32", "description": "The identifier of the Webhook." } }, "required": ["webhookId"] },
+    inputSchema: z.object({
+      webhookId: z.number().int().describe("The identifier of the Webhook."),
+    }),
     method: "get",
     pathTemplate: "/v1/webhooks/{webhookId}",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1401,7 +2055,19 @@ identified by the \`webhookId\`.`,
 
 **Important:** As this endpoint is doing a complete replace, it's important to set every other attribute that you don't
 want to change in its original state. Not listing one means it will reset.`,
-    inputSchema: { "type": "object", "properties": { "webhookId": { "type": "number", "format": "int32", "description": "The identifier of the Webhook." }, "requestBody": { "required": ["url"], "type": "object", "properties": { "url": { "maxLength": 1000, "minLength": 7, "type": "string", "description": "The URL of the Webhook." }, "content": { "maxLength": 15000, "minLength": 0, "type": ["string", "null"], "description": "The HTTP body content." }, "httpMethod": { "allOf": [{ "enum": ["get", "post"], "type": "string" }], "type": "null" }, "webHookHeaders": { "type": ["array", "null"], "items": { "required": ["key", "value"], "type": "object", "properties": { "key": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The HTTP header key." }, "value": { "maxLength": 1000, "minLength": 1, "type": "string", "description": "The HTTP header value." }, "isSecure": { "type": "boolean", "description": "Indicates whether the header value is sensitive." } } }, "description": "List of HTTP headers." } }, "description": "The JSON request body." } }, "required": ["webhookId", "requestBody"] },
+    inputSchema: z.object({
+      webhookId: z.number().int(),
+      requestBody: z.object({
+        url: z.string().min(7).max(1000),
+        content: z.string().min(0).max(15000).nullable().optional(),
+        httpMethod: z.enum(["get", "post"]).nullable().optional(),
+        webHookHeaders: z.array(z.object({
+          key: z.string().min(1).max(255),
+          value: z.string().min(1).max(1000),
+          isSecure: z.boolean().optional(),
+        })).nullable().optional(),
+      }),
+    }),
     method: "put",
     pathTemplate: "/v1/webhooks/{webhookId}",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1409,7 +2075,9 @@ want to change in its original state. Not listing one means it will reset.`,
   ["delete-webhook", {
     name: "delete-webhook",
     description: "This endpoint removes a Webhook identified by the `webhookId` parameter.",
-    inputSchema: { "type": "object", "properties": { "webhookId": { "type": "number", "format": "int32", "description": "The identifier of the Webhook." } }, "required": ["webhookId"] },
+    inputSchema: z.object({
+      webhookId: z.number().int().describe("The identifier of the Webhook."),
+    }),
     method: "delete",
     pathTemplate: "/v1/webhooks/{webhookId}",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1465,7 +2133,15 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: { "type": "object", "properties": { "webhookId": { "type": "number", "format": "int32", "description": "The identifier of the Webhook." }, "requestBody": { "type": "array", "items": { "required": ["op", "path"], "type": "object", "properties": { "op": { "enum": ["unknown", "add", "remove", "replace", "move", "copy", "test"], "type": "string" }, "path": { "minLength": 1, "type": "string", "description": "The source path." }, "from": { "type": ["string", "null"], "description": "The target path." }, "value": { "description": "The discrete value.", "type": "null" } } }, "description": "The JSON request body." } }, "required": ["webhookId", "requestBody"] },
+    inputSchema: z.object({
+      webhookId: z.number().int(),
+      requestBody: z.array(z.object({
+        op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]),
+        path: z.string().min(1),
+        from: z.string().nullable().optional(),
+        value: z.null().optional(),
+      })),
+    }),
     method: "patch",
     pathTemplate: "/v1/webhooks/{webhookId}",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1478,7 +2154,9 @@ identified by the \`webhookId\`.
 Signing keys are used for ensuring the Webhook requests you receive are actually sent by ConfigCat.
 
 <a href="https://configcat.com/docs/advanced/notifications-webhooks/#verifying-webhook-requests" target="_blank" rel="noopener noreferrer">Here</a> you can read more about Webhook request verification.`,
-    inputSchema: { "type": "object", "properties": { "webhookId": { "type": "number", "format": "int32", "description": "The identifier of the Webhook." } }, "required": ["webhookId"] },
+    inputSchema: z.object({
+      webhookId: z.number().int().describe("The identifier of the Webhook."),
+    }),
     method: "get",
     pathTemplate: "/v1/webhooks/{webhookId}/keys",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1487,7 +2165,14 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
     name: "create-product",
     description: `This endpoint creates a new Product in a specified Organization 
 identified by the \`organizationId\` parameter, which can be obtained from the [List Organizations](#operation/list-organizations) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "organizationId": { "type": "string", "format": "uuid", "description": "The identifier of the Organization." }, "requestBody": { "required": ["name"], "type": "object", "properties": { "name": { "maxLength": 1000, "minLength": 1, "type": "string", "description": "The name of the Product." }, "description": { "maxLength": 1000, "minLength": 0, "type": ["string", "null"], "description": "The description of the Product." }, "order": { "type": ["number", "null"], "description": "The order of the Product represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers.", "format": "int32" } }, "description": "The JSON request body." } }, "required": ["organizationId", "requestBody"] },
+    inputSchema: z.object({
+      organizationId: z.string().uuid(),
+      requestBody: z.object({
+        name: z.string().min(1).max(1000),
+        description: z.string().min(0).max(1000).nullable().optional(),
+        order: z.number().int().nullable().optional(),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/organizations/{organizationId}/products",
     executionParameters: [{ "name": "organizationId", "in": "path" }],
@@ -1496,7 +2181,20 @@ identified by the \`organizationId\` parameter, which can be obtained from the [
     name: "create-webhook",
     description: `This endpoint creates a new Webhook in a specified Product
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: { "type": "object", "properties": { "configId": { "type": "string", "format": "uuid", "description": "The identifier of the Config." }, "environmentId": { "type": "string", "format": "uuid", "description": "The identifier of the Environment." }, "requestBody": { "required": ["url"], "type": "object", "properties": { "url": { "maxLength": 1000, "minLength": 7, "type": "string", "description": "The URL of the Webhook." }, "content": { "maxLength": 15000, "minLength": 0, "type": ["string", "null"], "description": "The HTTP body content." }, "httpMethod": { "allOf": [{ "enum": ["get", "post"], "type": "string" }], "type": "null" }, "webHookHeaders": { "type": ["array", "null"], "items": { "required": ["key", "value"], "type": "object", "properties": { "key": { "maxLength": 255, "minLength": 1, "type": "string", "description": "The HTTP header key." }, "value": { "maxLength": 1000, "minLength": 1, "type": "string", "description": "The HTTP header value." }, "isSecure": { "type": "boolean", "description": "Indicates whether the header value is sensitive." } } }, "description": "List of HTTP headers." } }, "description": "The JSON request body." } }, "required": ["configId", "environmentId", "requestBody"] },
+    inputSchema: z.object({
+      configId: z.string().uuid(),
+      environmentId: z.string().uuid(),
+      requestBody: z.object({
+        url: z.string().min(7).max(1000),
+        content: z.string().min(0).max(15000).nullable().optional(),
+        httpMethod: z.enum(["get", "post"]).nullable().optional(),
+        webHookHeaders: z.array(z.object({
+          key: z.string().min(1).max(255),
+          value: z.string().min(1).max(1000),
+          isSecure: z.boolean().optional(),
+        })).nullable().optional(),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}/webhooks",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
@@ -1504,7 +2202,13 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
   ["invite-member", {
     name: "invite-member",
     description: "This endpoint invites a Member into the given Product identified by the `productId` parameter.",
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "requestBody": { "required": ["emails", "permissionGroupId"], "type": "object", "properties": { "emails": { "type": "array", "items": { "type": "string" }, "description": "List of email addresses to invite." }, "permissionGroupId": { "type": "number", "description": "Identifier of the Permission Group to where the invited users should be added.", "format": "int64" } }, "description": "The JSON request body." } }, "required": ["productId", "requestBody"] },
+    inputSchema: z.object({
+      productId: z.string().uuid(),
+      requestBody: z.object({
+        emails: z.array(z.string()),
+        permissionGroupId: z.number().int(),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/products/{productId}/members/invite",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -1514,7 +2218,16 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     description: `This endpoint updates the permissions of a Member identified by the \`userId\`. 
 This endpoint can also be used to move a Member between Permission Groups within a Product.
 Only a single Permission Group can be set per Product.`,
-    inputSchema: { "type": "object", "properties": { "organizationId": { "type": "string", "format": "uuid", "description": "The identifier of the Organization." }, "userId": { "type": "string", "description": "The identifier of the Member." }, "requestBody": { "type": "object", "properties": { "permissionGroupIds": { "type": ["array", "null"], "items": { "type": "integer", "format": "int64" }, "description": "List of Permission Group identifiers to where the Member should be added." }, "isAdmin": { "type": ["boolean", "null"], "description": "Indicates that the member must be Organization Admin." }, "isBillingManager": { "type": ["boolean", "null"], "description": "Indicates that the member must be Billing Manager." }, "removeFromPermissionGroupsWhereIdNotSet": { "type": "boolean", "description": "When `true`, the member will be removed from those Permission Groups that are not listed in the `permissionGroupIds` field." } }, "description": "The JSON request body." } }, "required": ["organizationId", "userId", "requestBody"] },
+    inputSchema: z.object({
+      organizationId: z.string().uuid(),
+      userId: z.string(),
+      requestBody: z.object({
+        permissionGroupIds: z.array(z.number().int()).nullable().optional(),
+        isAdmin: z.boolean().nullable().optional(),
+        isBillingManager: z.boolean().nullable().optional(),
+        removeFromPermissionGroupsWhereIdNotSet: z.boolean().optional(),
+      }),
+    }),
     method: "post",
     pathTemplate: "/v1/organizations/{organizationId}/members/{userId}",
     executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "userId", "in": "path" }],
@@ -1523,7 +2236,10 @@ Only a single Permission Group can be set per Product.`,
     name: "delete-organization-member",
     description: `This endpoint removes a Member identified by the \`userId\` from the 
 given Organization identified by the \`organizationId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "organizationId": { "type": "string", "format": "uuid", "description": "The identifier of the Organization." }, "userId": { "type": "string", "description": "The identifier of the Member." } }, "required": ["organizationId", "userId"] },
+    inputSchema: z.object({
+      organizationId: z.string().uuid().describe("The identifier of the Organization."),
+      userId: z.string().describe("The identifier of the Member."),
+    }),
     method: "delete",
     pathTemplate: "/v1/organizations/{organizationId}/members/{userId}",
     executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "userId", "in": "path" }],
@@ -1531,7 +2247,9 @@ given Organization identified by the \`organizationId\` parameter.`,
   ["delete-invitation", {
     name: "delete-invitation",
     description: "This endpoint removes an Invitation identified by the `invitationId` parameter.",
-    inputSchema: { "type": "object", "properties": { "invitationId": { "type": "string", "format": "uuid", "description": "The identifier of the Invitation." } }, "required": ["invitationId"] },
+    inputSchema: z.object({
+      invitationId: z.string().uuid().describe("The identifier of the Invitation."),
+    }),
     method: "delete",
     pathTemplate: "/v1/invitations/{invitationId}",
     executionParameters: [{ "name": "invitationId", "in": "path" }],
@@ -1540,7 +2258,10 @@ given Organization identified by the \`organizationId\` parameter.`,
     name: "delete-product-member",
     description: `This endpoint removes a Member identified by the \`userId\` from the 
 given Product identified by the \`productId\` parameter.`,
-    inputSchema: { "type": "object", "properties": { "productId": { "type": "string", "format": "uuid", "description": "The identifier of the Product." }, "userId": { "type": "string", "description": "The identifier of the Member." } }, "required": ["productId", "userId"] },
+    inputSchema: z.object({
+      productId: z.string().uuid().describe("The identifier of the Product."),
+      userId: z.string().describe("The identifier of the Member."),
+    }),
     method: "delete",
     pathTemplate: "/v1/products/{productId}/members/{userId}",
     executionParameters: [{ "name": "productId", "in": "path" }, { "name": "userId", "in": "path" }],
@@ -1561,7 +2282,7 @@ export function registerConfigCatAPITools(
     const toolsForClient: Tool[] = Array.from(toolDefinitionMap.values()).map(def => ({
       name: def.name,
       description: def.description,
-      inputSchema: def.inputSchema,
+      inputSchema: zodToJsonSchema(def.inputSchema) as ToolInput,
     }));
     return { tools: toolsForClient };
   });
@@ -1596,7 +2317,7 @@ async function executeApiTool(
     // Validate arguments against the input schema
     let validatedArgs: JsonObject;
     try {
-      const zodSchema = getZodSchemaFromJsonSchema(definition.inputSchema, toolName);
+      const zodSchema = definition.inputSchema;
       const argsToParse = (typeof toolArgs === "object" && toolArgs !== null) ? toolArgs : {};
       validatedArgs = zodSchema.parse(argsToParse);
     } catch (error: unknown) {
@@ -1613,7 +2334,7 @@ async function executeApiTool(
     let urlPath = definition.pathTemplate;
     const queryParams: Record<string, any> = {};
     const headers: Record<string, string> = {};
-    let requestBodyData: any = undefined;
+    let requestBodyData: any;
 
     // Apply parameters to the URL path, query, or headers
     definition.executionParameters.forEach((param) => {
@@ -1692,30 +2413,6 @@ async function executeApiTool(
 
     // Return error message to client
     return { content: [{ type: "text", text: errorMessage }] };
-  }
-}
-
-/**
- * Converts a JSON Schema to a Zod schema for runtime validation
- *
- * @param jsonSchema JSON Schema
- * @param toolName Tool name for error reporting
- * @returns Zod schema
- */
-function getZodSchemaFromJsonSchema(jsonSchema: JsonSchema, toolName: string): z.ZodTypeAny {
-  if (typeof jsonSchema !== "object" || jsonSchema === null) {
-    return z.object({}).passthrough();
-  }
-  try {
-    const zodSchemaString = jsonSchemaToZod(jsonSchema);
-    const zodSchema = eval(zodSchemaString);
-    if (typeof zodSchema?.parse !== "function") {
-      throw new Error("Eval did not produce a valid Zod schema.");
-    }
-    return zodSchema as z.ZodTypeAny;
-  } catch (err: any) {
-    console.error(`Failed to generate/evaluate Zod schema for '${toolName}':`, err);
-    return z.object({}).passthrough();
   }
 }
 
