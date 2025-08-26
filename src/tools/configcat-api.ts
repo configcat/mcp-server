@@ -371,8 +371,8 @@ and the result can be optionally filtered by various parameters.`,
     pathTemplate: "/v1/products/{productId}/staleflags",
     executionParameters: [{ "name": "productId", "in": "path" }, { "name": "scope", "in": "query" }, { "name": "staleFlagAgeDays", "in": "query" }, { "name": "staleFlagStaleInEnvironmentsType", "in": "query" }, { "name": "ignoredEnvironmentIds", "in": "query" }, { "name": "ignoredTagIds", "in": "query" }],
   }],
-  ["GetV1SettingsCodeReferences", {
-    name: "GetV1SettingsCodeReferences",
+  ["get-code-references", {
+    name: "get-code-references",
     description: "Get References for Feature Flag or Setting",
     inputSchema: z.object({
       settingId: z.number().int().describe("The identifier of the Feature Flag or Setting."),
