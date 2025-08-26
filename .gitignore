@@ -6,3 +6,4 @@ build/
 .env.production
 .DS_Store
 *.tsbuildinfo
+*.tgz

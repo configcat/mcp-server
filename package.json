@@ -1,11 +1,14 @@
 {
-  "name": "configcat-mcp",
+  "name": "@configcat/mcp-server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "description": "MCP server exposing ConfigCat Public Management API (products, configs, environments, values v1/v2).",
   "engines": {
     "node": ">=18.18"
+  },
+  "bin": {
+    "mcp": "build/index.js"
   },
   "scripts": {
     "build": "tsc -p .",
@@ -15,12 +18,20 @@
     "lint:fix": "eslint . --fix",
     "lint:check": "eslint . --max-warnings 0"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/configcat/configcat-mcp.git"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.2.0",
     "json-schema-to-zod": "^2.6.1",
     "zod": "^3.23.8",
     "zod-to-json-schema": "^3.24.6"
   },
+  "author": "ConfigCat",
+  "license": "MIT",
+  "homepage": "https://configcat.com",
+  "sideEffects": false,
   "devDependencies": {
     "@eslint/js": "^9.33.0",
     "@stylistic/eslint-plugin": "^5.2.3",

@@ -1,0 +1,9 @@
+.github/
+src/
+lib/**/*.map
+.*
+eslint.config.mjs
+node_modules/
+package-lock.json
+tsconfig*.json
+*.tgz
