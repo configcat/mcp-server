@@ -141,7 +141,7 @@ Add this server to your MCP client configuration:
 
 #### Code References
 
-- `GetV1SettingsCodeReferences` - Get code references
+- `get-code-references` - Get code references
 
 ### Diagnostics
 
