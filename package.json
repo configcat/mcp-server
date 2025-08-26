@@ -1,7 +1,6 @@
 {
   "name": "@configcat/mcp-server",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "MCP server exposing ConfigCat Public Management API (products, configs, environments, values v1/v2).",
   "engines": {
