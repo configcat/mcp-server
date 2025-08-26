@@ -4,7 +4,7 @@
   "type": "module",
   "description": "MCP server exposing ConfigCat Public Management API (products, configs, environments, values v1/v2).",
   "engines": {
-    "node": ">=18.18"
+    "node": ">=20.0.0"
   },
   "bin": {
     "mcp": "build/index.js"
