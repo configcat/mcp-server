@@ -1,6 +1,6 @@
 # ConfigCat MCP Server
 
-A Model Context Protocol (MCP) server that provides access to [ConfigCat's public management API](https://api.configcat.com/docs/) for feature flag and configuration management.
+A Model Context Protocol (MCP) server that provides access to [ConfigCat's public management API](https://configcat.com/docs/api/reference/configcat-public-management-api/) for feature flag and configuration management.
 
 ## Features
 
@@ -8,50 +8,61 @@ A Model Context Protocol (MCP) server that provides access to [ConfigCat's publi
 
 ## Setup
 
-1. Install dependencies:
-```bash
-npm install
-```
+You can use the following environment variables to configure the MCP server.
 
-2. Build the server:
-```bash
-npm run build
-```
+| Environment variable | Required | Default | Description |
+| -------------------- | -------- | ------- | ----------- |
+| CONFIGCAT_API_USER   | &#9745;  |         | [ConfigCat Management API basic authentication username](https://app.configcat.com/my-account/public-api-credentials). |
+| CONFIGCAT_API_PASS   | &#9745;  |         | [ConfigCat Management API basic authentication password](https://app.configcat.com/my-account/public-api-credentials). |
+| CONFIGCAT_API_HOST   |          | https://api.configcat.com | ConfigCat Management API host. |
 
-3. Set up your ConfigCat API credentials as environment variables:
-```bash
-export CONFIGCAT_API_USER="your-username"
-export CONFIGCAT_API_PASS="your-password"
-```
 
-You can get your API credentials from your ConfigCat account management page.
+The instructions below shows how to connect a client to the MCP server. 
 
-## Usage
+### Cursor
 
-### Running the Server
-
-```bash
-npm start
-```
-
-### MCP Client Configuration
-
-Add this server to your MCP client configuration:
+1. Open `Cursor Settings` -> `MCP & Integrations`
+2. Click `New MCP Server`
+3. Add the following server definition for the ConfigCat MCP server:
 
 ```json
 {
   "mcpServers": {
     "configcat": {
-      "command": "node",
-      "args": ["path/to/configcat-mcp/build/index.js"],
+      "command": "npx",
+      "args": ["-y", "@configcat/mcp-server"],
       "env": {
-        "CONFIGCAT_API_USER": "your-username",
-        "CONFIGCAT_API_PASS": "your-password"
+        "CONFIGCAT_API_USER": "YOUR_API_USER",
+        "CONFIGCAT_API_PASS": "YOUR_API_PASSWORD"
       }
     }
   }
 }
 ```
+
+4. Save the settings.
+
+### Claude Desktop
+
+1. Open `claude_desktop_config.json`
+2. Add the following server definition for the ConfigCat MCP server:
+
+```json
+{
+  "mcpServers": {
+    "configcat": {
+      "command": "npx",
+      "args": ["-y", "@configcat/mcp-server"],
+      "env": {
+        "CONFIGCAT_API_USER": "YOUR_API_USER",
+        "CONFIGCAT_API_PASS": "YOUR_API_PASSWORD"
+      }
+    }
+  }
+}
+```
+
+3. Save and restart Claude.
 
 ## Available Tools
 
@@ -192,7 +203,7 @@ The ConfigCat public API has rate limits. The server will respect these limits a
 
 ## Security Note
 
-This server is designed for management operations only. Do not use it for evaluating feature flag values in production applications - use the ConfigCat SDKs or ConfigCat Proxy instead.
+This server is designed for management operations only. Do not use it for evaluating feature flag values in production applications - use the [ConfigCat SDKs](https://configcat.com/docs/sdk-reference/overview/) or [ConfigCat Proxy](https://configcat.com/docs/advanced/proxy/proxy-overview/) instead.
 
 ## Development
 
