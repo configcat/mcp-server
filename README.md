@@ -14,15 +14,15 @@ You can use the following environment variables to configure the MCP server.
 | -------------------- | -------- | ------- | ----------- |
 | CONFIGCAT_API_USER   | &#9745;  |         | [ConfigCat Management API basic authentication username](https://app.configcat.com/my-account/public-api-credentials). |
 | CONFIGCAT_API_PASS   | &#9745;  |         | [ConfigCat Management API basic authentication password](https://app.configcat.com/my-account/public-api-credentials). |
-| CONFIGCAT_API_HOST   |          | https://api.configcat.com | ConfigCat Management API host. |
+| CONFIGCAT_BASE_URL   |          | https://api.configcat.com | ConfigCat Management API host. |
 
 
 The instructions below shows how to connect a client to the MCP server. 
 
 ### Cursor
 
-1. Open `Cursor Settings` -> `MCP & Integrations`
-2. Click `New MCP Server`
+1. Open `Preferences` -> `Cursor Settings` -> `MCP & Integrations`
+2. Click `Add Custom MCP`
 3. Add the following server definition for the ConfigCat MCP server:
 
 ```json
