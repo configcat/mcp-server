@@ -190,9 +190,6 @@ The instructions below shows how to connect a client to the MCP server.
 - `get-setting-value` - Get feature flag value
 - `update-setting-value` - Update feature flag value
 - `replace-setting-value` - Replace feature flag value
-- `get-setting-value-by-sdkkey` - Get value by SDK key
-- `update-setting-value-by-sdkkey` - Update value by SDK key
-- `replace-setting-value-by-sdkkey` - Replace value by SDK key
 - `get-setting-values` - Get multiple setting values
 - `post-setting-values` - Update multiple setting values
 - V2 variants: `*-v2` versions of above tools for Config V2
