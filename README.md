@@ -1,6 +1,6 @@
 # ConfigCat MCP Server
 
-A Model Context Protocol (MCP) server that provides access to [ConfigCat's public management API](https://configcat.com/docs/api/reference/configcat-public-management-api/) for feature flag and configuration management.
+The ConfigCat's Model Context Protocol (MCP) server provides access to [ConfigCat's public management API](https://configcat.com/docs/api/reference/configcat-public-management-api/) for feature flag and configuration management.
 
 ## Features
 
@@ -44,8 +44,10 @@ The instructions below shows how to connect a client to the MCP server.
 
 ### Claude Desktop
 
-1. Open `claude_desktop_config.json`
-2. Add the following server definition for the ConfigCat MCP server:
+1. Open **Settings** &rarr; **Developer**
+2. Click **Edit Config**
+3. Open `claude_desktop_config.json`
+4. Add the following server definition for the ConfigCat MCP server:
 
 ```json
 {
@@ -62,7 +64,7 @@ The instructions below shows how to connect a client to the MCP server.
 }
 ```
 
-3. Save and restart Claude.
+5. Save and restart Claude.
 
 ## Available Tools
 
@@ -201,13 +203,3 @@ The ConfigCat public API has rate limits. The server will respect these limits a
 ## Security Note
 
 This server is designed for management operations only. Do not use it for evaluating feature flag values in production applications - use the [ConfigCat SDKs](https://configcat.com/docs/sdk-reference/overview/) or [ConfigCat Proxy](https://configcat.com/docs/advanced/proxy/proxy-overview/) instead.
-
-## Development
-
-```bash
-# Build and watch for changes
-npm run dev
-
-# Build for production
-npm run build
-```
