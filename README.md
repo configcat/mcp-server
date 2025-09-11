@@ -28,7 +28,7 @@ The instructions below shows how to connect a client to the MCP server.
 ```json
 {
   "mcpServers": {
-    "configcat": {
+    "ConfigCat": {
       "command": "npx",
       "args": ["-y", "@configcat/mcp-server"],
       "env": {
@@ -52,7 +52,7 @@ The instructions below shows how to connect a client to the MCP server.
 ```json
 {
   "mcpServers": {
-    "configcat": {
+    "ConfigCat": {
       "command": "npx",
       "args": ["-y", "@configcat/mcp-server"],
       "env": {

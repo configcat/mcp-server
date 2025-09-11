@@ -50,7 +50,7 @@ When configuring your MCP client (e.g., Cursor, VS Code, Claude Desktop), use th
 ```json
 {
   "mcpServers": {
-    "configcat": {
+    "ConfigCat": {
       "command": "node",
       "args": ["/absolute/path/to/configcat-mcp-server/build/index.js"],
       "env": {
