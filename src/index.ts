@@ -1,4 +1,4 @@
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { HttpClient } from "./http.js";
 import { registerConfigCatAPITools } from "./tools/configcat-api.js";
@@ -12,7 +12,7 @@ const serverVersion = "0.1.0";
 
 const http = new HttpClient({ baseUrl, username, password, userAgent: `${serverName}/${serverVersion}` });
 
-const server = new Server(
+const server = new McpServer(
   { name: serverName, version: serverVersion },
   { capabilities: { tools: {} } }
 );

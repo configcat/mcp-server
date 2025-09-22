@@ -1,17 +1,8 @@
-import type { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  type CallToolRequest,
-  CallToolRequestSchema,
-  type CallToolResult,
-  ListToolsRequestSchema,
-  type Tool,
-  type ToolSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z, ZodError } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import type { ZodRawShape } from "zod";
 import type { HttpClient } from "../http";
-
-type ToolInput = z.infer<typeof ToolSchema.shape.inputSchema>;
 
 // Type definition for JSON objects
 type JsonObject = Record<string, unknown>;
@@ -20,7 +11,7 @@ type JsonObject = Record<string, unknown>;
 interface McpToolDefinition {
   name: string;
   description: string;
-  inputSchema: z.ZodType;
+  inputSchema: ZodRawShape;
   method: string;
   pathTemplate: string;
   executionParameters: { name: string; in: string }[];
@@ -31,7 +22,7 @@ const toolDefinitionMap = new Map<string, McpToolDefinition>([
   ["list-organizations", {
     name: "list-organizations",
     description: "This endpoint returns the list of the Organizations that belongs to the user.",
-    inputSchema: z.object({}),
+    inputSchema: {},
     method: "get",
     pathTemplate: "/v1/organizations",
     executionParameters: [],
@@ -39,7 +30,7 @@ const toolDefinitionMap = new Map<string, McpToolDefinition>([
   ["list-products", {
     name: "list-products",
     description: "This endpoint returns the list of the Products that belongs to the user.",
-    inputSchema: z.object({}),
+    inputSchema: {},
     method: "get",
     pathTemplate: "/v1/products",
     executionParameters: [],
@@ -48,9 +39,9 @@ const toolDefinitionMap = new Map<string, McpToolDefinition>([
     name: "list-tags",
     description: `This endpoint returns the list of the Tags in a 
 specified Product, identified by the \`productId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/tags",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -59,13 +50,13 @@ specified Product, identified by the \`productId\` parameter.`,
     name: "create-tag",
     description: `This endpoint creates a new Tag in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Organization."),
       requestBody: z.object({
         name: z.string().min(1).max(255).describe("Name of the Tag."),
         color: z.string().max(255).nullable().optional().describe("Color of the Tag. Possible values: `panther`, `whale`, `salmon`, `lizard`, `canary`, `koala`, or any HTML color code."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/products/{productId}/tags",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -74,9 +65,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-webhooks",
     description: `This endpoint returns the list of the Webhooks that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/webhooks",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -85,9 +76,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-configs",
     description: `This endpoint returns the list of the Configs that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/configs",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -96,7 +87,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "create-config",
     description: `This endpoint creates a new Config in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         name: z.string().min(1).max(255).describe("The name of the Config."),
@@ -104,7 +95,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
         order: z.number().int().nullable().optional().describe("The order of the Config represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers."),
         evaluationVersion: z.enum(["v1", "v2"]).optional().describe("Determines the evaluation version of a Config.\nUsing `v2` enables the new features of Config V2 (https://configcat.com/docs/advanced/config-v2)."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/products/{productId}/configs",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -113,9 +104,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-environments",
     description: `This endpoint returns the list of the Environments that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/environments",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -124,7 +115,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "create-environment",
     description: `This endpoint creates a new Environment in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         name: z.string().min(1).max(255).describe("The name of the Environment."),
@@ -132,7 +123,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
         description: z.string().max(1000).nullable().optional().describe("The description of the Environment."),
         order: z.number().int().nullable().optional().describe("The order of the Environment represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/products/{productId}/environments",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -141,9 +132,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-permission-groups",
     description: `This endpoint returns the list of the Permission Groups that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/permissions",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -152,7 +143,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "create-permission-group",
     description: `This endpoint creates a new Permission Group in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         name: z.string().min(1).max(255).describe("Name of the Permission Group."),
@@ -184,7 +175,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
         })).nullable().optional().describe("List of environment specific permissions."),
         canDisable2FA: z.boolean().optional().describe("Group members can disable two-factor authentication for other members."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/products/{productId}/permissions",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -193,9 +184,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-integrations",
     description: `This endpoint returns the list of the Integrations that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/integrations",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -224,7 +215,7 @@ The Parameters dictionary differs for each IntegrationType:
   - \`writeKey\`: Required. Twilio Segment Write Key.
   - \`server\`: Twilio Segment Server. Available values: \`Us\`, \`Eu\`. Default: \`Us\`.
 - PubNub (work in progress)`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         integrationType: z.enum(["dataDog", "slack", "amplitude", "mixPanel", "segment", "pubNub"]),
@@ -233,7 +224,7 @@ The Parameters dictionary differs for each IntegrationType:
         environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all of the Environments are connected."),
         configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all of the Configs are connected."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/products/{productId}/integrations",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -242,9 +233,9 @@ The Parameters dictionary differs for each IntegrationType:
     name: "list-segments",
     description: `This endpoint returns the list of the Segments that belongs to the given Product identified by the
 \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/segments",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -253,7 +244,7 @@ The Parameters dictionary differs for each IntegrationType:
     name: "create-segment",
     description: `This endpoint creates a new Segment in a specified Product 
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         name: z.string().min(1).max(255).describe("Name of the Segment."),
@@ -268,7 +259,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
         ]).describe("The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value."),
         comparisonValue: z.string().min(1).describe("The value to compare with the given user attribute's value."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/products/{productId}/segments",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -277,9 +268,9 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     name: "list-settings",
     description: `This endpoint returns the list of the Feature Flags and Settings defined in a 
 specified Config, identified by the \`configId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/configs/{configId}/settings",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -290,7 +281,7 @@ specified Config, identified by the \`configId\` parameter.`,
 identified by the \`configId\` parameter.
 
 **Important:** The \`key\` attribute must be unique within the given Config.`,
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       requestBody: z.object({
         hint: z.string().min(0).max(1000).nullable().describe("A short description for the setting, shown on the Dashboard UI."),
@@ -305,7 +296,7 @@ identified by the \`configId\` parameter.
         })).nullable().optional().describe("Optional, initial value of the Feature Flag or Setting in the given Environments. Only one of the SettingIdToInitFrom or the InitialValues properties can be set."),
         settingIdToInitFrom: z.number().int().nullable().optional().describe("Optional, the SettingId to initialize the values and tags of the Feature Flag or Setting from. Only can be set if you have at least ReadOnly access in all the Environments. Only one of the SettingIdToInitFrom or the InitialValues properties can be set."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/configs/{configId}/settings",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -318,7 +309,7 @@ and the result can be optionally filtered by Config and/or Environment.
 If neither \`fromUtcDateTime\` nor \`toUtcDateTime\` is set, the audit logs for the **last 7 days** will be returned.
 
 The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **30 days**.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       configId: z.string().uuid().optional().describe("The identifier of the Config."),
       environmentId: z.string().uuid().optional().describe("The identifier of the Environment."),
@@ -350,7 +341,7 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
       ]).nullable().optional().describe("Filter Audit logs by Audit log type."),
       fromUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by starting UTC date."),
       toUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by ending UTC date."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/auditlogs",
     executionParameters: [{ "name": "productId", "in": "path" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "auditLogType", "in": "query" }, { "name": "fromUtcDateTime", "in": "query" }, { "name": "toUtcDateTime", "in": "query" }],
@@ -359,14 +350,14 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
     name: "list-staleflags",
     description: `This endpoint returns the list of Zombie (stale) flags for a given Product 
 and the result can be optionally filtered by various parameters.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       scope: z.enum(["all", "watchedByMe"]).optional().describe("The scope of the report."),
       staleFlagAgeDays: z.number().int().min(7).max(90).optional().describe("The inactivity in days after a feature flag should be considered stale."),
       staleFlagStaleInEnvironmentsType: z.enum(["staleInAnyEnvironments", "staleInAllEnvironments"]).optional().describe("Consider a feature flag as stale if the feature flag is stale in all/any of the environments."),
       ignoredEnvironmentIds: z.array(z.string().uuid()).optional().describe("Ignore environment identifiers from the report."),
       ignoredTagIds: z.array(z.number().int()).optional().describe("Ignore feature flags from the report based on their tag identifiers."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/staleflags",
     executionParameters: [{ "name": "productId", "in": "path" }, { "name": "scope", "in": "query" }, { "name": "staleFlagAgeDays", "in": "query" }, { "name": "staleFlagStaleInEnvironmentsType", "in": "query" }, { "name": "ignoredEnvironmentIds", "in": "query" }, { "name": "ignoredTagIds", "in": "query" }],
@@ -374,9 +365,9 @@ and the result can be optionally filtered by various parameters.`,
   ["get-code-references", {
     name: "get-code-references",
     description: "Get References for Feature Flag or Setting",
-    inputSchema: z.object({
+    inputSchema: {
       settingId: z.number().int().describe("The identifier of the Feature Flag or Setting."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/settings/{settingId}/code-references",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -385,9 +376,9 @@ and the result can be optionally filtered by various parameters.`,
     name: "get-config",
     description: `This endpoint returns the metadata of a Config
 identified by the \`configId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/configs/{configId}",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -395,14 +386,14 @@ identified by the \`configId\`.`,
   ["update-config", {
     name: "update-config",
     description: "This endpoint updates a Config identified by the `configId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       requestBody: z.object({
         name: z.string().min(0).max(255).nullable().describe("The name of the Config."),
         description: z.string().min(0).max(1000).nullable().describe("The description of the Config."),
         order: z.number().int().nullable().describe("The order of the Config represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/configs/{configId}",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -410,9 +401,9 @@ identified by the \`configId\`.`,
   ["delete-config", {
     name: "delete-config",
     description: "This endpoint removes a Config identified by the `configId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/configs/{configId}",
     executionParameters: [{ "name": "configId", "in": "path" }],
@@ -421,9 +412,9 @@ identified by the \`configId\`.`,
     name: "get-environment",
     description: `This endpoint returns the metadata of an Environment 
 identified by the \`environmentId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/environments/{environmentId}",
     executionParameters: [{ "name": "environmentId", "in": "path" }],
@@ -431,7 +422,7 @@ identified by the \`environmentId\`.`,
   ["update-environment", {
     name: "update-environment",
     description: "This endpoint updates an Environment identified by the `environmentId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       requestBody: z.object({
         name: z.string().min(0).max(255).nullable().optional().describe("The name of the Environment."),
@@ -439,7 +430,7 @@ identified by the \`environmentId\`.`,
         description: z.string().min(0).max(1000).nullable().optional().describe("The description of the Environment."),
         order: z.number().int().nullable().optional().describe("The order of the Environment represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers."),
       }).describe("The JSON request body."),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/environments/{environmentId}",
     executionParameters: [{ "name": "environmentId", "in": "path" }],
@@ -449,10 +440,10 @@ identified by the \`environmentId\`.`,
     description: `This endpoint removes an Environment identified by the \`environmentId\` parameter.
 If the \`cleanupAuditLogs\` flag is set to true, it also deletes the audit log records related to the environment
 (except for the \`Created a new environment\` and \`Deleted an environment\` records).`,
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       cleanupAuditLogs: z.boolean().optional().describe("An optional flag which indicates whether the audit log records related to the environment should be deleted or not."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/environments/{environmentId}",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "cleanupAuditLogs", "in": "query" }],
@@ -461,9 +452,9 @@ If the \`cleanupAuditLogs\` flag is set to true, it also deletes the audit log r
     name: "get-permission-group",
     description: `This endpoint returns the metadata of a Permission Group 
 identified by the \`permissionGroupId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       permissionGroupId: z.number().int().describe("The identifier of the Permission Group."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/permissions/{permissionGroupId}",
     executionParameters: [{ "name": "permissionGroupId", "in": "path" }],
@@ -471,7 +462,7 @@ identified by the \`permissionGroupId\`.`,
   ["update-permission-group", {
     name: "update-permission-group",
     description: "This endpoint updates a Permission Group identified by the `permissionGroupId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       permissionGroupId: z.number().int().describe("The identifier of the Permission Group."),
       requestBody: z.object({
         name: z.string().min(0).max(255).nullable().describe("Name of the Permission Group."),
@@ -503,7 +494,7 @@ identified by the \`permissionGroupId\`.`,
           environmentAccessType: z.enum(["full", "readOnly", "none"]).describe("Represent the environment specific Feature Management permission."),
         })).nullable().describe("List of environment specific permissions."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/permissions/{permissionGroupId}",
     executionParameters: [{ "name": "permissionGroupId", "in": "path" }],
@@ -511,9 +502,9 @@ identified by the \`permissionGroupId\`.`,
   ["delete-permission-group", {
     name: "delete-permission-group",
     description: "This endpoint removes a Permission Group identified by the `permissionGroupId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       permissionGroupId: z.number().int().describe("The identifier of the Permission Group."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/permissions/{permissionGroupId}",
     executionParameters: [{ "name": "permissionGroupId", "in": "path" }],
@@ -522,9 +513,9 @@ identified by the \`permissionGroupId\`.`,
     name: "get-integration",
     description: `This endpoint returns the metadata of an Integration
 identified by the \`integrationId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       integrationId: z.string().uuid().describe("The identifier of the Integration."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/integrations/{integrationId}",
     executionParameters: [{ "name": "integrationId", "in": "path" }],
@@ -552,7 +543,7 @@ The Parameters dictionary differs for each IntegrationType:
   - \`writeKey\`: Required. Twilio Segment Write Key.
   - \`server\`: Twilio Segment Server. Available values: \`Us\`, \`Eu\`. Default: \`Us\`.
 - PubNub (work in progress)`,
-    inputSchema: z.object({
+    inputSchema: {
       integrationId: z.string().uuid().describe("The identifier of the Integration."),
       requestBody: z.object({
         name: z.string().min(1).describe("Name of the Integration."),
@@ -560,7 +551,7 @@ The Parameters dictionary differs for each IntegrationType:
         environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all of the Environments are connected."),
         configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all of the Configs are connected."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/integrations/{integrationId}",
     executionParameters: [{ "name": "integrationId", "in": "path" }],
@@ -568,9 +559,9 @@ The Parameters dictionary differs for each IntegrationType:
   ["delete-integration", {
     name: "delete-integration",
     description: "This endpoint removes a Integration identified by the `integrationId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       integrationId: z.string().uuid().describe("The identifier of the Integration."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/integrations/{integrationId}",
     executionParameters: [{ "name": "integrationId", "in": "path" }],
@@ -578,10 +569,10 @@ The Parameters dictionary differs for each IntegrationType:
   ["get-sdk-keys", {
     name: "get-sdk-keys",
     description: "This endpoint returns the SDK Key for your Config in a specified Environment.",
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
@@ -594,7 +585,7 @@ and the result can be optionally filtered by Product and/or Config and/or Enviro
 If neither \`fromUtcDateTime\` nor \`toUtcDateTime\` is set, the audit logs for the **last 7 days** will be returned.
 
 The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **30 days**.`,
-    inputSchema: z.object({
+    inputSchema: {
       organizationId: z.string().uuid().describe("The identifier of the Organization."),
       productId: z.string().uuid().optional().describe("The identifier of the Product."),
       configId: z.string().uuid().optional().describe("The identifier of the Config."),
@@ -627,7 +618,7 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
       ]).nullable().optional().describe("Filter Audit logs by Audit log type."),
       fromUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by starting UTC date."),
       toUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by ending UTC date."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/organizations/{organizationId}/auditlogs",
     executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "productId", "in": "query" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "auditLogType", "in": "query" }, { "name": "fromUtcDateTime", "in": "query" }, { "name": "toUtcDateTime", "in": "query" }],
@@ -641,9 +632,9 @@ The results may vary based on the access level of the user who calls the endpoin
 - When it's called with Organization Admin privileges, the result will contain each member in the Organization.
 - When it's called without Organization Admin privileges, the result will contain each Organization Admin along with members 
   of those products where the caller has \`Team members and permission groups\` (\`canManageMembers\`) permission.`,
-    inputSchema: z.object({
+    inputSchema: {
       organizationId: z.string().uuid().describe("The identifier of the Organization."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v2/organizations/{organizationId}/members",
     executionParameters: [{ "name": "organizationId", "in": "path" }],
@@ -652,9 +643,9 @@ The results may vary based on the access level of the user who calls the endpoin
     name: "list-pending-invitations-org",
     description: `This endpoint returns the list of pending invitations within the
 given Organization identified by the \`organizationId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       organizationId: z.string().uuid().describe("The identifier of the Organization."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/organizations/{organizationId}/invitations",
     executionParameters: [{ "name": "organizationId", "in": "path" }],
@@ -663,9 +654,9 @@ given Organization identified by the \`organizationId\` parameter.`,
     name: "list-pending-invitations",
     description: `This endpoint returns the list of pending invitations within the
 given Product identified by the \`productId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/invitations",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -674,9 +665,9 @@ given Product identified by the \`productId\` parameter.`,
     name: "get-product",
     description: `This endpoint returns the metadata of a Product 
 identified by the \`productId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -684,14 +675,14 @@ identified by the \`productId\`.`,
   ["update-product", {
     name: "update-product",
     description: "This endpoint updates a Product identified by the `productId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         name: z.string().min(0).max(1000).nullable().describe("The name of the Product."),
         description: z.string().min(0).max(1000).nullable().describe("The description of the Product."),
         order: z.number().int().nullable().describe("The order of the Product represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/products/{productId}",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -699,9 +690,9 @@ identified by the \`productId\`.`,
   ["delete-product", {
     name: "delete-product",
     description: "This endpoint removes a Product identified by the `productId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/products/{productId}",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -710,9 +701,9 @@ identified by the \`productId\`.`,
     name: "list-product-members",
     description: `This endpoint returns the list of Members that belongs 
 to the given Product, identified by the \`productId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/members",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -721,9 +712,9 @@ to the given Product, identified by the \`productId\` parameter.`,
     name: "get-product-preferences",
     description: `This endpoint returns the preferences of a Product
 identified by the \`productId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/products/{productId}/preferences",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -731,7 +722,7 @@ identified by the \`productId\`.`,
   ["update-product-preferences", {
     name: "update-product-preferences",
     description: "This endpoint updates the preferences of a Product identified by the `productId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         reasonRequired: z.boolean().nullable().describe("Indicates that a mandatory note is required for saving and publishing."),
@@ -743,7 +734,7 @@ identified by the \`productId\`.`,
           reasonRequired: z.boolean().describe("Indicates that a mandatory note is required in this Environment for saving and publishing."),
         })).nullable().describe("List of Environments where mandatory note must be set before saving and publishing."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/products/{productId}/preferences",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -752,9 +743,9 @@ identified by the \`productId\`.`,
     name: "get-segment",
     description: `This endpoint returns the metadata of a Segment
 identified by the \`segmentId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       segmentId: z.string().uuid().describe("The identifier of the Segment."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/segments/{segmentId}",
     executionParameters: [{ "name": "segmentId", "in": "path" }],
@@ -762,7 +753,7 @@ identified by the \`segmentId\`.`,
   ["update-segment", {
     name: "update-segment",
     description: "This endpoint updates a Segment identified by the `segmentId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       segmentId: z.string().uuid().describe("The identifier of the Segment."),
       requestBody: z.object({
         name: z.string().min(0).max(255).nullable().optional().describe("Name of the Segment."),
@@ -777,7 +768,7 @@ identified by the \`segmentId\`.`,
         ]).nullable().describe("The comparison operator the evaluation process must use when it compares the given user attribute's value with the comparison value."),
         comparisonValue: z.string().nullable().optional().describe("The value to compare with the given user attribute's value."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/segments/{segmentId}",
     executionParameters: [{ "name": "segmentId", "in": "path" }],
@@ -785,9 +776,9 @@ identified by the \`segmentId\`.`,
   ["delete-segment", {
     name: "delete-segment",
     description: "This endpoint removes a Segment identified by the `segmentId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       segmentId: z.string().uuid().describe("The identifier of the Segment."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/segments/{segmentId}",
     executionParameters: [{ "name": "segmentId", "in": "path" }],
@@ -796,9 +787,9 @@ identified by the \`segmentId\`.`,
     name: "get-setting",
     description: `This endpoint returns the metadata attributes of a Feature Flag or Setting 
 identified by the \`settingId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       settingId: z.number().int().describe("The identifier of the Setting."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -810,7 +801,7 @@ identified by the \`settingId\` parameter.
 
 **Important:** As this endpoint is doing a complete replace, it's important to set every other attribute that you don't 
 want to change in its original state. Not listing one means it will reset.`,
-    inputSchema: z.object({
+    inputSchema: {
       settingId: z.number().int().describe("The identifier of the Setting."),
       requestBody: z.object({
         hint: z.string().min(0).max(1000).nullable().describe("A short description for the setting, shown on the Dashboard UI."),
@@ -818,7 +809,7 @@ want to change in its original state. Not listing one means it will reset.`,
         order: z.number().int().nullable().describe("The order of the Setting represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
         name: z.string().min(1).max(255).nullable().describe("The name of the Feature Flag or Setting."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -827,9 +818,9 @@ want to change in its original state. Not listing one means it will reset.`,
     name: "delete-setting",
     description: `This endpoint removes a Feature Flag or Setting from a specified Config, 
 identified by the \`configId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       settingId: z.number().int().describe("The identifier of the Setting."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -900,7 +891,7 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: z.object({
+    inputSchema: {
       settingId: z.number().int().describe("The identifier of the Setting."),
       requestBody: z.array(z.object({
         op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]).describe("The operation type."),
@@ -908,7 +899,7 @@ So we get a response like this:
         from: z.string().nullable().describe("The target path."),
         value: z.any().describe("The discrete value."),
       })),
-    }),
+    },
     method: "patch",
     pathTemplate: "/v1/settings/{settingId}",
     executionParameters: [{ "name": "settingId", "in": "path" }],
@@ -917,9 +908,9 @@ So we get a response like this:
     name: "list-settings-by-tag",
     description: `This endpoint returns the list of the Settings that 
 has the specified Tag, identified by the \`tagId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       tagId: z.number().int().describe("The identifier of the Tag."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/tags/{tagId}/settings",
     executionParameters: [{ "name": "tagId", "in": "path" }],
@@ -937,10 +928,10 @@ The \`rolloutRules\` and \`percentageRules\` attributes are representing the cur
 Targeting and Percentage Rules configuration of the actual Feature Flag or Setting 
 in an **ordered** collection, which means the order of the returned rules is matching to the
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview).`,
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       settingId: z.number().int().describe("The id of the Setting."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }],
@@ -991,7 +982,7 @@ The \`rolloutRules\` property describes two types of rules:
 
 - **Targeting rules**: When you want to add or update a targeting rule, the \`comparator\`, \`comparisonAttribute\`, and \`comparisonValue\` members are required.
 - **Segment rules**: When you want to add add or update a segment rule, the \`segmentId\` which identifies the desired segment and the \`segmentComparator\` members are required.`,
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       settingId: z.number().int().describe("The id of the Setting."),
       reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
@@ -1016,7 +1007,7 @@ The \`rolloutRules\` property describes two types of rules:
         })).describe("The percentage rule collection."),
         value: z.union([z.boolean(), z.string(), z.number()]).describe("The value to serve. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1082,7 +1073,7 @@ The \`rolloutRules\` property describes two types of rules:
 
 - **Targeting rules**: When you want to add or update a targeting rule, the \`comparator\`, \`comparisonAttribute\`, and \`comparisonValue\` members are required.
 - **Segment rules**: When you want to add add or update a segment rule, the \`segmentId\` which identifies the desired segment and the \`segmentComparator\` members are required.`,
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       settingId: z.number().int().describe("The identifier of the Setting."),
       reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
@@ -1092,7 +1083,7 @@ The \`rolloutRules\` property describes two types of rules:
         from: z.string().nullable().optional().describe("The target path."),
         value: z.any().optional().describe("The discrete value."),
       })),
-    }),
+    },
     method: "patch",
     pathTemplate: "/v1/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1112,10 +1103,10 @@ in an **ordered** collection, which means the order of the returned rules is mat
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview/).
 
 The \`percentageEvaluationAttribute\` represents the custom [User Object](https://configcat.com/docs/targeting/user-object/) attribute that must be used for [percentage evaluation](https://configcat.com/docs/targeting/percentage-options/) of the Feature Flag or Setting.`,
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       settingId: z.number().int().describe("The id of the Setting."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }],
@@ -1175,7 +1166,7 @@ So we get a response like this:
   "targetingRules": []
 }
 \`\`\``,
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       settingId: z.number().int().describe("The identifier of the Setting."),
       reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
@@ -1233,7 +1224,7 @@ So we get a response like this:
         })).nullable().optional().describe("The targeting rules of the Feature Flag or Setting."),
         percentageEvaluationAttribute: z.string().max(1000).nullable().optional().describe("The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1315,7 +1306,7 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: z.object({
+    inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       settingId: z.number().int().describe("The identifier of the Setting."),
       reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
@@ -1325,7 +1316,7 @@ So we get a response like this:
         from: z.string().nullable().optional().describe("The target path."),
         value: z.any().optional().describe("The discrete value."),
       })),
-    }),
+    },
     method: "patch",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
     executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1343,10 +1334,10 @@ The \`rolloutRules\` and \`percentageRules\` attributes are representing the cur
 Targeting and Percentage Rules configuration of the actual Feature Flag or Setting 
 in an **ordered** collection, which means the order of the returned rules is matching to the
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview/).`,
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}/values",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
@@ -1416,7 +1407,7 @@ The \`rolloutRules\` property describes two types of rules:
 
 - **Targeting rules**: When you want to add or update a targeting rule, the \`comparator\`, \`comparisonAttribute\`, and \`comparisonValue\` members are required.
 - **Segment rules**: When you want to add add or update a segment rule, the \`segmentId\` which identifies the desired segment and the \`segmentComparator\` members are required.`,
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
@@ -1438,7 +1429,7 @@ The \`rolloutRules\` property describes two types of rules:
           settingId: z.number().int().optional().describe("The identifier of the Setting."),
         })).describe("The values to update."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}/values",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1458,10 +1449,10 @@ in an **ordered** collection, which means the order of the returned rules is mat
 evaluation order. You can read more about these rules [here](https://configcat.com/docs/targeting/targeting-overview/).
 
 The \`percentageEvaluationAttribute\` represents the custom [User Object](https://configcat.com/docs/targeting/user-object/) attribute that must be used for [percentage evaluation](https://configcat.com/docs/targeting/percentage-options/) of the Feature Flag or Setting.`,
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v2/configs/{configId}/environments/{environmentId}/values",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
@@ -1539,7 +1530,7 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid(),
       environmentId: z.string().uuid(),
       reason: z.string().optional(),
@@ -1600,7 +1591,7 @@ So we get a response like this:
           settingId: z.number().int().describe("The identifier of the feature flag or setting."),
         })).describe("Evaluation descriptors of each updated Feature Flag and Setting."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v2/configs/{configId}/environments/{environmentId}/values",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }, { "name": "reason", "in": "query" }],
@@ -1609,9 +1600,9 @@ So we get a response like this:
     name: "get-tag",
     description: `This endpoint returns the metadata of a Tag 
 identified by the \`tagId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       tagId: z.number().int().describe("The identifier of the Tag."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/tags/{tagId}",
     executionParameters: [{ "name": "tagId", "in": "path" }],
@@ -1619,13 +1610,13 @@ identified by the \`tagId\`.`,
   ["update-tag", {
     name: "update-tag",
     description: "This endpoint updates a Tag identified by the `tagId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       tagId: z.number().int(),
       requestBody: z.object({
         name: z.string().min(0).max(255).nullable().optional().describe("The name of the Tag."),
         color: z.string().min(0).max(255).nullable().optional().describe("Color of the Tag. Possible values: `panther`, `whale`, `salmon`, `lizard`, `canary`, `koala`, or any HTML color code."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/tags/{tagId}",
     executionParameters: [{ "name": "tagId", "in": "path" }],
@@ -1633,9 +1624,9 @@ identified by the \`tagId\`.`,
   ["delete-tag", {
     name: "delete-tag",
     description: "This endpoint deletes a Tag identified by the `tagId` parameter. To remove a Tag from a Feature Flag or Setting use the [Update Flag](#operation/update-setting) endpoint.",
-    inputSchema: z.object({
+    inputSchema: {
       tagId: z.number().int().describe("The identifier of the Tag."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/tags/{tagId}",
     executionParameters: [{ "name": "tagId", "in": "path" }],
@@ -1644,9 +1635,9 @@ identified by the \`tagId\`.`,
     name: "get-webhook",
     description: `This endpoint returns the metadata of a Webhook 
 identified by the \`webhookId\`.`,
-    inputSchema: z.object({
+    inputSchema: {
       webhookId: z.number().int().describe("The identifier of the Webhook."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/webhooks/{webhookId}",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1657,7 +1648,7 @@ identified by the \`webhookId\`.`,
 
 **Important:** As this endpoint is doing a complete replace, it's important to set every other attribute that you don't
 want to change in its original state. Not listing one means it will reset.`,
-    inputSchema: z.object({
+    inputSchema: {
       webhookId: z.number().int().describe("The identifier of the Webhook."),
       requestBody: z.object({
         url: z.string().min(7).max(1000).describe("The URL of the Webhook."),
@@ -1669,7 +1660,7 @@ want to change in its original state. Not listing one means it will reset.`,
           isSecure: z.boolean().optional().describe("Indicates whether the header value is sensitive."),
         })).nullable().optional().describe("List of HTTP headers."),
       }),
-    }),
+    },
     method: "put",
     pathTemplate: "/v1/webhooks/{webhookId}",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1677,9 +1668,9 @@ want to change in its original state. Not listing one means it will reset.`,
   ["delete-webhook", {
     name: "delete-webhook",
     description: "This endpoint removes a Webhook identified by the `webhookId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       webhookId: z.number().int().describe("The identifier of the Webhook."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/webhooks/{webhookId}",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1735,7 +1726,7 @@ So we get a response like this:
   ]
 }
 \`\`\``,
-    inputSchema: z.object({
+    inputSchema: {
       webhookId: z.number().int().describe("The identifier of the Webhook."),
       requestBody: z.array(z.object({
         op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]).describe("The operation type."),
@@ -1743,7 +1734,7 @@ So we get a response like this:
         from: z.string().nullable().optional().describe("The target path."),
         value: z.any().optional().describe("The discrete value."),
       })),
-    }),
+    },
     method: "patch",
     pathTemplate: "/v1/webhooks/{webhookId}",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1756,9 +1747,9 @@ identified by the \`webhookId\`.
 Signing keys are used for ensuring the Webhook requests you receive are actually sent by ConfigCat.
 
 <a href="https://configcat.com/docs/advanced/notifications-webhooks/#verifying-webhook-requests" target="_blank" rel="noopener noreferrer">Here</a> you can read more about Webhook request verification.`,
-    inputSchema: z.object({
+    inputSchema: {
       webhookId: z.number().int().describe("The identifier of the Webhook."),
-    }),
+    },
     method: "get",
     pathTemplate: "/v1/webhooks/{webhookId}/keys",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
@@ -1767,14 +1758,14 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
     name: "create-product",
     description: `This endpoint creates a new Product in a specified Organization 
 identified by the \`organizationId\` parameter, which can be obtained from the [List Organizations](#operation/list-organizations) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       organizationId: z.string().uuid().describe("The identifier of the Organization."),
       requestBody: z.object({
         name: z.string().min(1).max(1000).describe("The name of the Product."),
         description: z.string().min(0).max(1000).nullable().optional().describe("The description of the Product."),
         order: z.number().int().nullable().optional().describe("The order of the Product represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/organizations/{organizationId}/products",
     executionParameters: [{ "name": "organizationId", "in": "path" }],
@@ -1783,7 +1774,7 @@ identified by the \`organizationId\` parameter, which can be obtained from the [
     name: "create-webhook",
     description: `This endpoint creates a new Webhook in a specified Product
 identified by the \`productId\` parameter, which can be obtained from the [List Products](#operation/list-products) endpoint.`,
-    inputSchema: z.object({
+    inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
       requestBody: z.object({
@@ -1796,7 +1787,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
           isSecure: z.boolean().optional().describe("Indicates whether the header value is sensitive."),
         })).nullable().optional().describe("List of HTTP headers."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/configs/{configId}/environments/{environmentId}/webhooks",
     executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
@@ -1804,13 +1795,13 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
   ["invite-member", {
     name: "invite-member",
     description: "This endpoint invites a Member into the given Product identified by the `productId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         emails: z.array(z.string()).describe("List of email addresses to invite."),
         permissionGroupId: z.number().int().describe("Identifier of the Permission Group to where the invited users should be added."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/products/{productId}/members/invite",
     executionParameters: [{ "name": "productId", "in": "path" }],
@@ -1820,7 +1811,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     description: `This endpoint updates the permissions of a Member identified by the \`userId\`. 
 This endpoint can also be used to move a Member between Permission Groups within a Product.
 Only a single Permission Group can be set per Product.`,
-    inputSchema: z.object({
+    inputSchema: {
       organizationId: z.string().uuid().describe("The identifier of the Organization."),
       userId: z.string().describe("The identifier of the Member."),
       requestBody: z.object({
@@ -1829,7 +1820,7 @@ Only a single Permission Group can be set per Product.`,
         isBillingManager: z.boolean().nullable().optional().describe("Indicates that the member must be Billing Manager."),
         removeFromPermissionGroupsWhereIdNotSet: z.boolean().optional().describe("When `true`, the member will be removed from those Permission Groups that are not listed in the `permissionGroupIds` field."),
       }),
-    }),
+    },
     method: "post",
     pathTemplate: "/v1/organizations/{organizationId}/members/{userId}",
     executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "userId", "in": "path" }],
@@ -1838,10 +1829,10 @@ Only a single Permission Group can be set per Product.`,
     name: "delete-organization-member",
     description: `This endpoint removes a Member identified by the \`userId\` from the 
 given Organization identified by the \`organizationId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       organizationId: z.string().uuid().describe("The identifier of the Organization."),
       userId: z.string().describe("The identifier of the Member."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/organizations/{organizationId}/members/{userId}",
     executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "userId", "in": "path" }],
@@ -1849,9 +1840,9 @@ given Organization identified by the \`organizationId\` parameter.`,
   ["delete-invitation", {
     name: "delete-invitation",
     description: "This endpoint removes an Invitation identified by the `invitationId` parameter.",
-    inputSchema: z.object({
+    inputSchema: {
       invitationId: z.string().uuid().describe("The identifier of the Invitation."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/invitations/{invitationId}",
     executionParameters: [{ "name": "invitationId", "in": "path" }],
@@ -1860,10 +1851,10 @@ given Organization identified by the \`organizationId\` parameter.`,
     name: "delete-product-member",
     description: `This endpoint removes a Member identified by the \`userId\` from the 
 given Product identified by the \`productId\` parameter.`,
-    inputSchema: z.object({
+    inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       userId: z.string().describe("The identifier of the Member."),
-    }),
+    },
     method: "delete",
     pathTemplate: "/v1/products/{productId}/members/{userId}",
     executionParameters: [{ "name": "productId", "in": "path" }, { "name": "userId", "in": "path" }],
@@ -1877,28 +1868,19 @@ given Product identified by the \`productId\` parameter.`,
  * @param http The HTTP client instance to use for API requests.
  */
 export function registerConfigCatAPITools(
-  server: Server,
+  server: McpServer,
   http: HttpClient
 ): void {
-  server.setRequestHandler(ListToolsRequestSchema, () => {
-    const toolsForClient: Tool[] = Array.from(toolDefinitionMap.values()).map(def => ({
-      name: def.name,
-      description: def.description,
-      inputSchema: zodToJsonSchema(def.inputSchema) as ToolInput,
-    }));
-    return { tools: toolsForClient };
-  });
-
-  server.setRequestHandler(CallToolRequestSchema, async (request: CallToolRequest): Promise<CallToolResult> => {
-    const { name: toolName, arguments: toolArgs } = request.params;
-    const toolDefinition = toolDefinitionMap.get(toolName);
-    if (!toolDefinition) {
-      console.error(`Error: Unknown tool requested: ${toolName}`);
-      return { content: [{ type: "text", text: `Error: Unknown tool requested: ${toolName}` }] };
-    }
-
-    return await executeApiTool(http, toolName, toolDefinition, toolArgs ?? {});
-  });
+  for (const [toolName, toolDefinition] of toolDefinitionMap.entries()) {
+    server.tool(
+      toolName,
+      toolDefinition.description,
+      toolDefinition.inputSchema,
+      async (toolArgs: JsonObject): Promise<CallToolResult> => {
+        return await executeApiTool(http, toolName, toolDefinition, toolArgs ?? {});
+      }
+    );
+  }
 }
 
 /**
@@ -1919,7 +1901,7 @@ async function executeApiTool(
     // Validate arguments against the input schema
     let validatedArgs: JsonObject;
     try {
-      const zodSchema = definition.inputSchema;
+      const zodSchema = z.object(definition.inputSchema);
       const argsToParse = (typeof toolArgs === "object" && toolArgs !== null) ? toolArgs : {};
       validatedArgs = zodSchema.parse(argsToParse) as JsonObject;
     } catch (error: unknown) {
