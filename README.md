@@ -42,6 +42,27 @@ The instructions below shows how to connect a client to the MCP server.
 
 4. Save the settings.
 
+### Visual Studio Code
+
+1. Create a `.vscode/mcp.json` file in your project root with the following content:
+
+```json
+{
+  "servers": {
+    "ConfigCat": {
+      "command": "npx",
+      "args": ["-y", "@configcat/mcp-server"],
+      "env": {
+        "CONFIGCAT_API_USER": "YOUR_API_USER",
+        "CONFIGCAT_API_PASS": "YOUR_API_PASSWORD"
+      }
+    }
+  }
+}
+```
+
+2. Save the settings file. The MCP server should now be available in VS Code.
+
 ### Claude Desktop
 
 1. Open **Settings** &rarr; **Developer**
