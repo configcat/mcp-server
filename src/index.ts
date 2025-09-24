@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { HttpClient } from "./http.js";
 import { registerConfigCatAPITools } from "./tools/configcat-api.js";
+import { registerConfigCatDocsTools } from "./tools/configcat-docs.js";
 
 const baseUrl: string = process.env.CONFIGCAT_BASE_URL ?? "https://api.configcat.com";
 const username: string = process.env.CONFIGCAT_API_USER ?? "";
@@ -17,6 +18,7 @@ const server = new McpServer(
   { capabilities: { tools: {} } }
 );
 
+registerConfigCatDocsTools(server, http);
 registerConfigCatAPITools(server, http);
 
 async function main() {

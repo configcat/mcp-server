@@ -1,4 +1,3 @@
-/* Minimal HTTP helper with Basic auth and JSON handling */
 import { Buffer } from "node:buffer";
 
 export type HttpOptions = {
@@ -20,6 +19,7 @@ export class HttpClient {
     this.userAgent = opts.userAgent ?? "";
   }
 
+  // HTTP request with Basic auth and JSON handling
   async request(path: string, init: RequestInit = {}): Promise<Response> {
     const url = path.startsWith("http") ? path : `${this.baseUrl}${path}`;
     const headers = new Headers();
@@ -36,20 +36,30 @@ export class HttpClient {
       }
     }
 
-    const res = await fetch(url, {
+    const response = await fetch(url, {
       ...init,
       headers,
     });
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
       const rate = {
-        remaining: res.headers.get("X-Rate-Limit-Remaining"),
-        reset: res.headers.get("X-Rate-Limit-Reset"),
+        remaining: response.headers.get("X-Rate-Limit-Remaining"),
+        reset: response.headers.get("X-Rate-Limit-Reset"),
       };
-      throw new Error(`HTTP ${res.status} ${res.statusText} for ${url} - ${text} - rate: ${JSON.stringify(rate)}`);
+      throw new Error(`HTTP ${response.status} ${response.statusText} for ${url} - ${text} - rate: ${JSON.stringify(rate)}`);
     }
 
-    return res;
+    return response;
+  }
+
+  // Simple fetch with User-Agent header
+  async fetch(url: string): Promise<Response> {
+    return await fetch(url, {
+      redirect: "follow",
+      headers: {
+        "User-Agent": this.userAgent,
+      },
+    });
   }
 }
