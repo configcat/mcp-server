@@ -18,13 +18,14 @@ const server = new McpServer(
   { capabilities: { tools: {} } }
 );
 
-registerConfigCatDocsTools(server, http);
-registerConfigCatAPITools(server, http);
-
 async function main() {
   if (!username || !password) {
     throw new Error("Please set CONFIGCAT_API_USER and CONFIGCAT_API_PASS environment variables (Public API credentials). You can create your credentials on the Public API credentials management page: https://app.configcat.com/my-account/public-api-credentials.");
   }
+
+  registerConfigCatAPITools(server, http);
+  await registerConfigCatDocsTools(server, http);
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

@@ -217,6 +217,10 @@ The instructions below shows how to connect a client to the MCP server.
 - `post-setting-values` - Update multiple setting values
 - V2 variants: `*-v2` versions of above tools for Config V2
 
+### SDK documentation
+
+- `update-sdk-documentation` - Get comprehensive SDK documentation and code examples for seamless feature flag implementation in your project.
+
 ## API Rate Limits
 
 The ConfigCat public API has rate limits. The server will respect these limits and return appropriate error messages if limits are exceeded.
