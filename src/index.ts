@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { HttpClient } from "./http.js";
@@ -9,7 +11,7 @@ const username: string = process.env.CONFIGCAT_API_USER ?? "";
 const password: string = process.env.CONFIGCAT_API_PASS ?? "";
 
 const serverName = "ConfigCat MCP";
-const serverVersion = "0.1.1";
+const serverVersion = "0.1.2";
 
 const http = new HttpClient({ baseUrl, username, password, userAgent: `${serverName}/${serverVersion}` });
 
