@@ -7,7 +7,7 @@
     "node": ">=20.0.0"
   },
   "bin": {
-    "mcp": "build/index.js"
+    "mcp-server": "build/index.js"
   },
   "scripts": {
     "build": "tsc -p .",
