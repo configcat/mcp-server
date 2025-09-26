@@ -1,6 +1,6 @@
 .github/
 src/
-lib/**/*.map
+**/*.map
 .*
 eslint.config.mjs
 node_modules/
