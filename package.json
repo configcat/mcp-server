@@ -21,6 +21,15 @@
     "type": "git",
     "url": "git+https://github.com/configcat/configcat-mcp.git"
   },
+  "keywords": [
+    "configcat",
+    "featureflags",
+    "feature flags",
+    "feature toggle",
+    "feature switch",
+    "mcp",
+    "modelcontextprotocol"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.4",
     "json-schema-to-zod": "^2.6.1",
