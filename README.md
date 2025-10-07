@@ -230,3 +230,14 @@ The ConfigCat public API has rate limits. The server will respect these limits a
 ## Security Note
 
 This server is designed for management operations only. Do not use it for evaluating feature flag values in production applications - use the [ConfigCat SDKs](https://configcat.com/docs/sdk-reference/overview/) or [ConfigCat Proxy](https://configcat.com/docs/advanced/proxy/proxy-overview/) instead.
+
+## Need help?
+https://configcat.com/support
+
+## Contributing
+Contributions are welcome. For more info please read the [Contribution Guideline](CONTRIBUTING.md).
+
+## About ConfigCat
+- [ConfigCat MCP server documentation](https://configcat.com/docs/advanced/mcp-server)
+- [Documentation](https://configcat.com/docs)
+- [Blog](https://configcat.com/blog)
