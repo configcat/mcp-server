@@ -1,0 +1,44 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.configcat/mcp-server",
+  "description": "Enables AI agents to interact with ConfigCat, a feature flag service for teams.",
+  "repository": {
+    "url": "https://github.com/configcat/mcp-server",
+    "source": "github"
+  },
+  "version": "0.1.2",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@configcat/mcp-server",
+      "version": "0.1.2",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "description": "ConfigCat Management API basic authentication username.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true,
+          "name": "CONFIGCAT_API_USER"
+        },
+        {
+          "description": "ConfigCat Management API basic authentication password.",
+          "isRequired": true,
+          "format": "string",
+          "isSecret": true,
+          "name": "CONFIGCAT_API_PASS"
+        },
+        {
+          "description": "Base URL for the ConfigCat API. Defaults to `https://api.configcat.com`.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": false,
+          "name": "CONFIGCAT_BASE_URL"
+        }
+      ]
+    }
+  ]
+}
