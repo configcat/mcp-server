@@ -1,6 +1,6 @@
 # ConfigCat MCP Server
 
-The ConfigCat's Model Context Protocol (MCP) server provides access to [ConfigCat's public management API](https://configcat.com/docs/api/reference/configcat-public-management-api/) for feature flag and configuration management. It also enables your code editor to understand your feature flags, integrate the appropriate ConfigCat SDK into your project or even create new feature flags directly in your codebase.
+The [ConfigCat](https://configcat.com/)'s Model Context Protocol (MCP) server provides access to [ConfigCat's public management API](https://configcat.com/docs/api/reference/configcat-public-management-api/) for feature flag and configuration management. It also enables your code editor to understand your feature flags, integrate the appropriate ConfigCat SDK into your project or even create new feature flags directly in your codebase.
 
 ## Features
 
