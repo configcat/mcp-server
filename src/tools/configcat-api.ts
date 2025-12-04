@@ -1877,11 +1877,11 @@ export function registerConfigCatAPITools(
       toolName,
       {
         description: toolDefinition.description,
-        inputSchema: toolDefinition.inputSchema
+        inputSchema: toolDefinition.inputSchema,
       } as RegisterToolConfig,
-      (async (toolArgs: JsonObject): Promise<CallToolResult> => {
+      async (toolArgs: JsonObject): Promise<CallToolResult> => {
         return await executeApiTool(http, toolName, toolDefinition, toolArgs ?? {});
-      })
+      }
     );
   }
 }

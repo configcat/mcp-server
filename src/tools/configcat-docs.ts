@@ -41,7 +41,6 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
 
   type RegisterToolConfig = Parameters<McpServer["registerTool"]>[1];
   type RegisterToolCallback = Parameters<McpServer["registerTool"]>[2];
-
   server.registerTool(
     "update-sdk-documentation",
     {
@@ -53,9 +52,9 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
     2. Then call the tool "update-sdk-documentation" with specific URL from the SDK Reference list to fetch relevant documentation page.
     
     ${sdkDocs}`,
-    inputSchema: {
-      url: z.string().url().describe("The URL to fetch SDK documentation from."),
-    }
+      inputSchema: {
+        url: z.string().url().describe("The URL to fetch SDK documentation from."),
+      },
     } as RegisterToolConfig,
     (async ({ url }: { url: string }): Promise<CallToolResult> => {
       try {
