@@ -1871,11 +1871,14 @@ export function registerConfigCatAPITools(
   server: McpServer,
   http: HttpClient
 ): void {
+  type RegisterToolConfig = Parameters<McpServer["registerTool"]>[1];
   for (const [toolName, toolDefinition] of toolDefinitionMap.entries()) {
-    server.tool(
+    server.registerTool(
       toolName,
-      toolDefinition.description,
-      toolDefinition.inputSchema,
+      {
+        description: toolDefinition.description,
+        inputSchema: toolDefinition.inputSchema,
+      } as RegisterToolConfig,
       async (toolArgs: JsonObject): Promise<CallToolResult> => {
         return await executeApiTool(http, toolName, toolDefinition, toolArgs ?? {});
       }

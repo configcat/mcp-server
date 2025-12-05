@@ -39,8 +39,12 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
     return;
   }
 
-  server.tool(
+  type RegisterToolConfig = Parameters<McpServer["registerTool"]>[1];
+  type RegisterToolCallback = Parameters<McpServer["registerTool"]>[2];
+  server.registerTool(
     "update-sdk-documentation",
+    {
+      description:
     `If the user asks for coding related to a feature flag (such as integrating the ConfigCat SDK, adding a feature flag, or removing a feature flag), 
     always call the tool "update-sdk-documentation" first to download the latest ConfigCat SDK documentation.
 
@@ -48,10 +52,11 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
     2. Then call the tool "update-sdk-documentation" with specific URL from the SDK Reference list to fetch relevant documentation page.
     
     ${sdkDocs}`,
-    {
-      url: z.string().url().describe("The URL to fetch SDK documentation from."),
-    },
-    async ({ url }): Promise<CallToolResult> => {
+      inputSchema: {
+        url: z.string().url().describe("The URL to fetch SDK documentation from."),
+      },
+    } as RegisterToolConfig,
+    (async ({ url }: { url: string }): Promise<CallToolResult> => {
       try {
         console.error(`Fetching documentation from: ${url}`);
         const response = await http.fetch(url);
@@ -86,6 +91,6 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
           isError: true,
         };
       }
-    }
+    }) as RegisterToolCallback
   );
 }
