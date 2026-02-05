@@ -11,7 +11,7 @@ const username: string = process.env.CONFIGCAT_API_USER ?? "";
 const password: string = process.env.CONFIGCAT_API_PASS ?? "";
 
 const serverName = "ConfigCat MCP";
-const serverVersion = "0.1.3";
+const serverVersion = "0.1.4";
 
 const http = new HttpClient({ baseUrl, username, password, userAgent: `${serverName}/${serverVersion}` });
 
