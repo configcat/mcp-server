@@ -290,7 +290,7 @@ identified by the \`configId\` parameter.
         order: z.number().int().nullable().describe("The order of the Setting represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
         key: z.string().min(1).max(255).describe("The key of the Feature Flag or Setting."),
         name: z.string().min(1).max(255).describe("The name of the Feature Flag or Setting."),
-        settingType: z.enum(["boolean", "string", "int", "double"]).describe("The type of the Feature Flag or Setting."),        
+        settingType: z.enum(["boolean", "string", "int", "double"]).describe("The type of the Feature Flag or Setting."),
         predefinedVariations: z.array(z.object({
           value: z.object({
             boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
@@ -331,7 +331,7 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
         "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered",
         "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated",
         "settingChanged", "settingDeleted", "settingsReordered", "predefinedVariationsChanged",
-        "settingConvertedToPredefinedVariations","settingConvertedToFreeFormValues", "settingValueChanged", "webHookCreated",
+        "settingConvertedToPredefinedVariations", "settingConvertedToFreeFormValues", "settingValueChanged", "webHookCreated",
         "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted",
         "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged",
         "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded",
@@ -610,7 +610,7 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
         "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered",
         "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated",
         "settingChanged", "settingDeleted", "settingsReordered", "predefinedVariationsChanged",
-        "settingConvertedToPredefinedVariations","settingConvertedToFreeFormValues", "settingValueChanged", "webHookCreated",
+        "settingConvertedToPredefinedVariations", "settingConvertedToFreeFormValues", "settingValueChanged", "webHookCreated",
         "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted",
         "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged",
         "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded",
@@ -677,9 +677,9 @@ given Product identified by the \`productId\` parameter.`,
   }],
   ["list-predefined-variations", {
     name: "list-predefined-variations",
-    description: `This endpoint returns the predefined variations along with their usages in the Environments for a Feature Flag or Setting identified by the \`settingId\` parameter.`,
+    description: "This endpoint returns the predefined variations along with their usages in the Environments for a Feature Flag or Setting identified by the `settingId` parameter.",
     inputSchema: {
-      settingId: z.number().int().describe("The identifier of the Setting.")
+      settingId: z.number().int().describe("The identifier of the Setting."),
     },
     method: "get",
     pathTemplate: "/v1/settings/{settingId}/predefined-variations",
