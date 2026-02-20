@@ -1,7 +1,8 @@
 # Steps to deploy
 ## Preparation
 1. Increase the `serverVersion` in [src/index.ts](src/index.ts).
-2. Commit & Push
+2. Increase the `version` in [server.json](server.json).
+3. Commit & Push
 ## Publish
 Use the **same version** for the git tag as in [src/index.ts](src/index.ts).
 - Via git tag
