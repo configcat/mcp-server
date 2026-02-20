@@ -2,7 +2,8 @@
 ## Preparation
 1. Increase the `serverVersion` in [src/index.ts](src/index.ts).
 2. Increase the `version` in [server.json](server.json).
-3. Commit & Push
+3. Increase the `version` in [package.json](package.json).
+4. Commit & Push
 ## Publish
 Use the **same version** for the git tag as in [src/index.ts](src/index.ts).
 - Via git tag
