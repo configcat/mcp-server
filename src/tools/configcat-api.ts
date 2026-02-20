@@ -203,6 +203,7 @@ The Parameters dictionary differs for each IntegrationType:
 - Slack  
   Connecting the Slack integration through the Public Management API will not post messages with the ConfigCat Feature Flags Slack app but with an incoming webhook.
   - \`incoming_webhook.url\`: Required. The [incoming webhook URL](https://api.slack.com/messaging/webhooks) where the integration should post messages.
+  - \`includeSensitiveData\`: Set to "true" to include [sensitive (hashed) comparison values](https://configcat.com/docs/targeting/targeting-rule/user-condition/#confidential-text-comparators). By default, the integration will mask these values in the posted messages. We recommend hiding sensitive comparison values for shared or public Slack channels.
 - Amplitude
   - \`apiKey\`: Required. Amplitude API Key.
   - \`secretKey\`: Required. Amplitude Secret Key.
@@ -219,10 +220,10 @@ The Parameters dictionary differs for each IntegrationType:
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
         integrationType: z.enum(["dataDog", "slack", "amplitude", "mixPanel", "segment", "pubNub"]),
-        name: z.string().min(1).describe("Name of the Integration."),
+        name: z.string().min(1).max(255).describe("Name of the Integration."),
         parameters: z.record(z.string().nullable()).describe("Parameters of the Integration."),
-        environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all of the Environments are connected."),
-        configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all of the Configs are connected."),
+        environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all the Environments are connected."),
+        configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all the Configs are connected."),
       }),
     },
     method: "post",
@@ -290,9 +291,19 @@ identified by the \`configId\` parameter.
         key: z.string().min(1).max(255).describe("The key of the Feature Flag or Setting."),
         name: z.string().min(1).max(255).describe("The name of the Feature Flag or Setting."),
         settingType: z.enum(["boolean", "string", "int", "double"]).describe("The type of the Feature Flag or Setting."),
+        predefinedVariations: z.array(z.object({
+          value: z.object({
+            boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+            stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+            intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+            doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+          }).describe("Represents the value of a Predefined Variation."),
+          name: z.string().min(0).max(255).nullable().optional().describe("The name of the Predefined Variation, shown on the Dashboard UI. If not set, the Value will be shown."),
+          hint: z.string().min(0).max(1000).nullable().optional().describe("The name of the Predefined Variation, shown on the Dashboard UI. If not set, the Value will be shown."),
+        }).describe("A Predefined Variation.")).nullable().optional().describe("The Feature Flag or Setting's Variations."),
         initialValues: z.array(z.object({
           environmentId: z.string().uuid().describe("The ID of the Environment where the initial value must be set."),
-          value: z.union([z.boolean(), z.string(), z.number()]).describe("The initial value in the given Environment. It must respect the setting type. In some generated clients for strictly typed languages you may use double/float properties to handle integer values."),
+          value: z.union([z.boolean(), z.string(), z.number()]).describe("The initial value in the given Environment. It must respect the setting type. In some generated clients for strictly typed languages, you may use double/float properties to handle integer values. In case of a Feature Flag with predefined variations, the value must match one of the predefined variations' value."),
         })).nullable().optional().describe("Optional, initial value of the Feature Flag or Setting in the given Environments. Only one of the SettingIdToInitFrom or the InitialValues properties can be set."),
         settingIdToInitFrom: z.number().int().nullable().optional().describe("Optional, the SettingId to initialize the values and tags of the Feature Flag or Setting from. Only can be set if you have at least ReadOnly access in all the Environments. Only one of the SettingIdToInitFrom or the InitialValues properties can be set."),
       }),
@@ -319,7 +330,8 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
         "teamMemberRemoved", "teamMemberLeft", "teamMemberInvitationChanged", "teamMemberInvitationResent",
         "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered",
         "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated",
-        "settingChanged", "settingDeleted", "settingsReordered", "settingValueChanged", "webHookCreated",
+        "settingChanged", "settingDeleted", "settingsReordered", "predefinedVariationsChanged",
+        "settingConvertedToPredefinedVariations", "settingConvertedToFreeFormValues", "settingValueChanged", "webHookCreated",
         "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted",
         "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged",
         "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded",
@@ -531,6 +543,7 @@ The Parameters dictionary differs for each IntegrationType:
 - Slack  
   Connecting the Slack integration through the Public Management API will not post messages with the ConfigCat Feature Flags Slack app but with an incoming webhook.
   - \`incoming_webhook.url\`: Required. The [incoming webhook URL](https://api.slack.com/messaging/webhooks) where the integration should post messages.
+  - \`includeSensitiveData\`: Set to "true" to include [sensitive (hashed) comparison values](https://configcat.com/docs/targeting/targeting-rule/user-condition/#confidential-text-comparators). By default, the integration will mask these values in the posted messages. We recommend hiding sensitive comparison values for shared or public Slack channels.
 - Amplitude
   - \`apiKey\`: Required. Amplitude API Key.
   - \`secretKey\`: Required. Amplitude Secret Key.
@@ -546,10 +559,10 @@ The Parameters dictionary differs for each IntegrationType:
     inputSchema: {
       integrationId: z.string().uuid().describe("The identifier of the Integration."),
       requestBody: z.object({
-        name: z.string().min(1).describe("Name of the Integration."),
+        name: z.string().min(1).max(255).describe("Name of the Integration."),
         parameters: z.record(z.string().nullable()).describe("Parameters of the Integration."),
-        environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all of the Environments are connected."),
-        configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all of the Configs are connected."),
+        environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all the Environments are connected."),
+        configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all the Configs are connected."),
       }),
     },
     method: "put",
@@ -596,7 +609,8 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
         "teamMemberRemoved", "teamMemberLeft", "teamMemberInvitationChanged", "teamMemberInvitationResent",
         "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered",
         "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated",
-        "settingChanged", "settingDeleted", "settingsReordered", "settingValueChanged", "webHookCreated",
+        "settingChanged", "settingDeleted", "settingsReordered", "predefinedVariationsChanged",
+        "settingConvertedToPredefinedVariations", "settingConvertedToFreeFormValues", "settingValueChanged", "webHookCreated",
         "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted",
         "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged",
         "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded",
@@ -660,6 +674,42 @@ given Product identified by the \`productId\` parameter.`,
     method: "get",
     pathTemplate: "/v1/products/{productId}/invitations",
     executionParameters: [{ "name": "productId", "in": "path" }],
+  }],
+  ["list-predefined-variations", {
+    name: "list-predefined-variations",
+    description: "This endpoint returns the predefined variations along with their usages in the Environments for a Feature Flag or Setting identified by the `settingId` parameter.",
+    inputSchema: {
+      settingId: z.number().int().describe("The identifier of the Setting."),
+    },
+    method: "get",
+    pathTemplate: "/v1/settings/{settingId}/predefined-variations",
+    executionParameters: [{ "name": "settingId", "in": "path" }],
+  }],
+  ["update-predefined-variations", {
+    name: "update-predefined-variations",
+    description: `This endpoint updates the predefined variations for a Feature Flag or Setting identified by the \`settingId\` parameter.
+**Important:** You can only update a predefined variation's value if it is not used anywhere in your feature flags.`,
+    inputSchema: {
+      settingId: z.number().int().describe("The identifier of the Setting."),
+      requestBody: z.object({
+        predefinedVariations: z.array(
+          z.object({
+            value: z.object({
+              boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+              stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+              intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+              doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+            }).describe("Represents the value of a Predefined Variation."),
+            name: z.string().min(0).max(255).nullable().optional().describe("The name of the Predefined Variation, shown on the Dashboard UI. If not set, the Value will be shown."),
+            hint: z.string().min(0).max(1000).nullable().optional().describe("The name of the Predefined Variation, shown on the Dashboard UI. If not set, the Value will be shown."),
+            predefinedVariationId: z.string().uuid().nullable().optional().describe("The Predefined Variation's identifier to update. Omit the value if you want to add a new predefined variation."),
+          }).describe("A Predefined Variation.")
+        ).describe("A collection of Predefined Variations."),
+      }),
+    },
+    method: "put",
+    pathTemplate: "/v1/settings/{settingId}/predefined-variations",
+    executionParameters: [{ "name": "settingId", "in": "path" }],
   }],
   ["get-product", {
     name: "get-product",
@@ -804,10 +854,10 @@ want to change in its original state. Not listing one means it will reset.`,
     inputSchema: {
       settingId: z.number().int().describe("The identifier of the Setting."),
       requestBody: z.object({
-        hint: z.string().min(0).max(1000).nullable().describe("A short description for the setting, shown on the Dashboard UI."),
-        tags: z.array(z.number().int()).nullable().describe("The IDs of the tags which are attached to the setting."),
-        order: z.number().int().nullable().describe("The order of the Setting represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
-        name: z.string().min(1).max(255).nullable().describe("The name of the Feature Flag or Setting."),
+        name: z.string().min(1).max(255).describe("The name of the Feature Flag or Setting."),
+        hint: z.string().min(0).max(1000).nullable().optional().describe("A short description for the setting, shown on the Dashboard UI."),
+        tags: z.array(z.number().int()).nullable().optional().describe("The IDs of the tags which are attached to the setting."),
+        order: z.number().int().nullable().optional().describe("The order of the Setting represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
       }),
     },
     method: "put",
@@ -1176,6 +1226,7 @@ So we get a response like this:
           stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
           intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
           doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+          predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
         }).describe("Represents the value of a Feature Flag or Setting."),
         targetingRules: z.array(z.object({
           conditions: z.array(z.object({
@@ -1203,6 +1254,7 @@ So we get a response like this:
                 stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
                 intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
                 doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
               }).describe("Represents the value of a Feature Flag or Setting."),
             }).nullable().optional().describe("Describes a condition that is based on a prerequisite flag."),
           })).nullable().optional().describe("The list of conditions that are combined with logical AND operators. It can be one of the following: User condition, Segment condition, Prerequisite flag condition"),
@@ -1213,6 +1265,7 @@ So we get a response like this:
               stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
               intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
               doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+              predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
             }).describe("Represents the value of a Feature Flag or Setting."),
           })).nullable().optional().describe("The percentage options from where the evaluation process will choose a value based on the flag's percentage evaluation attribute."),
           value: z.object({
@@ -1220,6 +1273,7 @@ So we get a response like this:
             stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
             intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
             doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+            predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
           }).nullable().optional().describe("Represents the value of a Feature Flag or Setting."),
         })).nullable().optional().describe("The targeting rules of the Feature Flag or Setting."),
         percentageEvaluationAttribute: z.string().max(1000).nullable().optional().describe("The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute."),
@@ -1541,6 +1595,7 @@ So we get a response like this:
             stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
             intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
             doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+            predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
           }).describe("Represents the value of a Feature Flag or Setting."),
           targetingRules: z.array(z.object({
             conditions: z.array(z.object({
@@ -1568,6 +1623,7 @@ So we get a response like this:
                   stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
                   intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
                   doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                  predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
                 }).describe("Represents the value of a Feature Flag or Setting."),
               }).nullable().optional(),
             })).nullable().optional(),
@@ -1578,6 +1634,7 @@ So we get a response like this:
                 stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
                 intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
                 doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
               }).describe("Represents the value of a Feature Flag or Setting."),
             })).nullable().optional().describe("The percentage options from where the evaluation process will choose a value based on the flag's percentage evaluation attribute."),
             value: z.object({
@@ -1585,6 +1642,7 @@ So we get a response like this:
               stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
               intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
               doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+              predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
             }).nullable().optional().describe("Represents the value of a Feature Flag or Setting."),
           })).nullable().optional().describe("The targeting rules of the Feature Flag or Setting."),
           percentageEvaluationAttribute: z.string().max(1000).nullable().optional().describe("The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute."),
