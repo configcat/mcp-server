@@ -196,6 +196,8 @@ The instructions below shows how to connect a client to the MCP server.
 
 - `list-settings` - List feature flags for a config
 - `create-setting` - Create a new feature flag
+- `list-predefined-variations` - List predefined variations
+- `update-predefined-variations` - Update predefined variations
 - `get-setting` - Get specific feature flag details
 - `replace-setting` - Replace feature flag configuration
 - `update-setting` - Update existing feature flag
