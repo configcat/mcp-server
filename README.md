@@ -1,7 +1,7 @@
 # ConfigCat MCP Server
 
-[![License](https://img.shields.io/github/license/configcat/mcp-server.svg)](https://github.com/configcat/mcp-server/blob/main/LICENSE)
 [![NPM](https://nodei.co/npm/@configcat/mcp-server.svg?style=flat-square&data=n,v&color=brightgreen)](https://www.npmjs.com/package/@configcat/mcp-server)
+[![License](https://img.shields.io/github/license/configcat/mcp-server.svg)](https://github.com/configcat/mcp-server/blob/main/LICENSE)
 
 The [ConfigCat](https://configcat.com/)'s Model Context Protocol (MCP) server provides access to [ConfigCat's public management API](https://configcat.com/docs/api/reference/configcat-public-management-api/) for feature flag and configuration management. It also enables your code editor to understand your feature flags, integrate the appropriate ConfigCat SDK into your project or even create new feature flags directly in your codebase.
 
