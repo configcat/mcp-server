@@ -1,22 +1,32 @@
 import { Buffer } from "node:buffer";
 
-export type HttpOptions = {
-  baseUrl: string;
-  username: string;
-  password: string;
-  userAgent?: string;
-};
-
 export class HttpClient {
-  private readonly baseUrl: string;
-  private readonly authHeader: string;
   private readonly userAgent: string;
+  private cachedUsername = "";
+  private cachedPassword = "";
+  private cachedAuthHeader = "";
 
-  constructor(opts: HttpOptions) {
-    this.baseUrl = opts.baseUrl.replace(/\/$/, "");
-    const encoded = Buffer.from(`${opts.username}:${opts.password}`).toString("base64");
-    this.authHeader = `Basic ${encoded}`;
-    this.userAgent = opts.userAgent ?? "";
+  constructor(userAgent: string) {
+    this.userAgent = userAgent;
+  }
+
+  private get baseUrl(): string {
+    return (process.env.CONFIGCAT_BASE_URL ?? "https://api.configcat.com").replace(/\/$/, "");
+  }
+
+  private get authHeader(): string {
+    const username = process.env.CONFIGCAT_API_USER ?? "";
+    const password = process.env.CONFIGCAT_API_PASS ?? "";
+    if (!username || !password) {
+      throw new Error("Please set CONFIGCAT_API_USER and CONFIGCAT_API_PASS environment variables (Public API credentials). You can create your credentials on the Public API credentials management page: https://app.configcat.com/my-account/public-api-credentials.");
+    }
+    if (username !== this.cachedUsername || password !== this.cachedPassword) {
+      this.cachedUsername = username;
+      this.cachedPassword = password;
+      const encoded = Buffer.from(`${username}:${password}`).toString("base64");
+      this.cachedAuthHeader = `Basic ${encoded}`;
+    }
+    return this.cachedAuthHeader;
   }
 
   // HTTP request with Basic auth and JSON handling
