@@ -7,7 +7,7 @@ import { registerConfigCatAPITools } from "./tools/configcat-api.js";
 import { registerConfigCatDocsTools } from "./tools/configcat-docs.js";
 
 const serverName = "ConfigCat MCP";
-const serverVersion = "0.1.6";
+const serverVersion = "0.1.7";
 
 const http = new HttpClient(`${serverName}/${serverVersion}`);
 

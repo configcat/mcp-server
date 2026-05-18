@@ -11,7 +11,7 @@ function extractMarkdownSection(content: string, sectionHeader: string): string 
   const sectionIndex = content.indexOf(sectionHeader);
   if (sectionIndex !== -1) {
     const rest = content.substring(sectionIndex + sectionHeader.length);
-    const nextHeadingIndex = rest.search(/\n###\s+/); // looks for "\n### ..."
+    const nextHeadingIndex = rest.search(/\n##\s+/); // looks for "\n## ..."
 
     let endIndex;
     if (nextHeadingIndex !== -1) {
@@ -33,7 +33,7 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
     return;
   }
 
-  const sdkDocs = extractMarkdownSection(await response.text(), "### SDK Reference");
+  const sdkDocs = extractMarkdownSection(await response.text(), "## SDK Reference");
   if (!sdkDocs) {
     console.error(`Failed to extract SDK Reference section from ${LLMS_TXT_URL}`);
     return;
