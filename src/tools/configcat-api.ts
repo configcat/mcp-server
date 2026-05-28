@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z, ZodError } from "zod";
 import type { ZodRawShape } from "zod";
+import { appendQueryParams } from "../helpers/query-params.js";
 import type { HttpClient } from "../http";
 
 // Type definition for JSON objects
@@ -2001,6 +2002,8 @@ async function executeApiTool(
     if (urlPath.includes("{")) {
       throw new Error(`Failed to resolve path parameters: ${urlPath}`);
     }
+
+    urlPath = appendQueryParams(urlPath, queryParams);
 
     // Handle request body if needed
     if (typeof validatedArgs["requestBody"] !== "undefined") {

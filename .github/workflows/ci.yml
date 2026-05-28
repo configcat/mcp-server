@@ -25,6 +25,9 @@ jobs:
       - name: Run check
         run: npm run lint:check
 
+      - name: Run tests
+        run: npm test
+
   publish-dry-run:
     needs: [ check ]
     runs-on: ubuntu-latest
