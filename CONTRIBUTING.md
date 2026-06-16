@@ -43,6 +43,12 @@ npm run build
 
 This will output the compiled JavaScript files to the `build/` directory (or as configured in `tsconfig.json`).
 
+### Run tests
+
+```bash
+npm run test
+```
+
 ### Add the MCP server to your AI tool
 
 When configuring your MCP client (e.g., Cursor, VS Code, Claude Desktop), use the absolute path to your local build. Example JSON config:
