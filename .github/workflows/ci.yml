@@ -9,9 +9,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  check:
+  test:
     runs-on: ubuntu-latest
-    name: Lint check
     steps:
       - uses: actions/checkout@v6
 
@@ -29,7 +28,7 @@ jobs:
         run: npm test
 
   publish-dry-run:
-    needs: [ check ]
+    needs: [ test ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
