@@ -3,7 +3,7 @@ import { HttpClient } from "../../src/http.js";
 import { registerConfigCatDocsTools } from "../../src/tools/configcat-docs.js";
 
 type RegisterToolCallback = (args: { url: string }) => Promise<{
-  content: Array<{ type: string; text: string }>;
+  content: { type: string; text: string }[];
   isError?: boolean;
 }>;
 

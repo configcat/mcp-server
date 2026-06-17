@@ -275,7 +275,7 @@ export default [
         parserOptions: {
           ecmaVersion: "latest",
           sourceType: "module",
-          project: "tsconfig.json",
+          project: "tsconfig.eslint.json",
         },
       },
       rules: {
@@ -480,9 +480,6 @@ export default [
       "lib/",
       "node_modules/",
       "samples/",
-      "src/Hash.ts",
-      "src/Semver.ts",
-      "test/cloudflare-worker/dist/",
       "*.log",
     ],
   },
