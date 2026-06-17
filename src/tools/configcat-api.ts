@@ -1965,7 +1965,7 @@ async function executeApiTool(
     try {
       const zodSchema = z.object(definition.inputSchema);
       const argsToParse = (typeof toolArgs === "object" && toolArgs !== null) ? toolArgs : {};
-      validatedArgs = zodSchema.parse(argsToParse) as JsonObject;
+      validatedArgs = zodSchema.parse(argsToParse);
     } catch (error: unknown) {
       if (error instanceof ZodError) {
         const validationErrorMessage = `Invalid arguments for tool '${toolName}': ${error.errors.map(e => `${e.path.join(".")} (${e.code}): ${e.message}`).join(", ")}`;
