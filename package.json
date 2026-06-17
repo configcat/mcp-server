@@ -1,6 +1,6 @@
 {
   "name": "@configcat/mcp-server",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "mcpName": "io.github.configcat/mcp-server",
   "type": "module",
   "description": "MCP server exposing ConfigCat Public Management API (products, configs, environments, values v1/v2).",
@@ -51,6 +51,6 @@
     "globals": "^16.3.0",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.40.0",
-    "vitest": "^3.2.6"
+    "vitest": "^4.1.9"
   }
 }
