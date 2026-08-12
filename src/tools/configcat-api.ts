@@ -20,6 +20,36 @@ interface McpToolDefinition {
 
 // Map of tool definitions by name
 const toolDefinitionMap = new Map<string, McpToolDefinition>([
+  ["get-change-request", {
+    name: "get-change-request",
+    description: `Returns the details of a specific Change Request.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+    },
+    method: "get",
+    pathTemplate: "/v2/change-requests/{changeRequestId}",
+    executionParameters: [{"name":"changeRequestId","in":"path"}],
+  }],
+  ["update-change-request", {
+    name: "update-change-request",
+    description: `Updates the metadata of a Change Request, such as title, note, schedule, etc.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."), "requestBody": z.object({ "title": z.string().max(255).describe("The updated title of the Change Request."), "reason": z.union([z.string().max(1000).describe("The updated optional notes describing the purpose of the Change Request."), z.null().describe("The updated optional notes describing the purpose of the Change Request.")]).describe("The updated optional notes describing the purpose of the Change Request.").optional(), "applyAt": z.union([z.string().datetime({ offset: true }).describe("The updated optional UTC date and time when the Change Request should be applied automatically."), z.null().describe("The updated optional UTC date and time when the Change Request should be applied automatically.")]).describe("The updated optional UTC date and time when the Change Request should be applied automatically.").optional(), "bypassApproval": z.union([z.boolean().describe("The updated bypass-approval flag for scheduled changes."), z.null().describe("The updated bypass-approval flag for scheduled changes.")]).describe("The updated bypass-approval flag for scheduled changes.").optional() }).describe("The JSON request body.")
+    },
+    method: "put",
+    pathTemplate: "/v2/change-requests/{changeRequestId}",
+    executionParameters: [{"name":"changeRequestId","in":"path"}],
+  }],
+  ["list-change-requests", {
+    name: "list-change-requests",
+    description: `Returns Change Requests of a Product with optional filtering and pagination.`,
+    inputSchema: {
+      "productId": z.string().uuid().describe("The identifier of the Product."), "configId": z.string().uuid().describe("Filter Change Requests by Config identifier.").optional(), "environmentId": z.string().uuid().describe("Filter Change Requests by Environment identifier.").optional(), "settingId": z.number().describe("Filter Change Requests by Setting identifier.").optional(), "changeRequestStatusFilter": z.array(z.enum(["open","applied","closed"]).describe("The lifecycle status of a Change Request.")).describe("Filter Change Requests by status values.").optional(), "scheduleFilter": z.enum(["nonScheduled","scheduled"]).describe("Filter Change Requests by schedule state.").optional(), "approveRequiredFilter": z.enum(["approveNotRequired","approveRequired"]).describe("Filter Change Requests by approval requirement.").optional(), "needsAttentionFilter": z.enum(["notNeedsAttention","needsAttention"]).describe("Filter Change Requests by whether they need attention.").optional(), "pageNumber": z.number().gte(1).lte(2147483647).describe("Page number (min: 1).").default(1), "pageSize": z.number().gte(1).lte(100).describe("Page size (min: 1, max: 100).").default(25)
+    },
+    method: "get",
+    pathTemplate: "/v2/products/{productId}/change-requests",
+    executionParameters: [{"name":"productId","in":"path"},{"name":"configId","in":"query"},{"name":"environmentId","in":"query"},{"name":"settingId","in":"query"},{"name":"changeRequestStatusFilter","in":"query"},{"name":"scheduleFilter","in":"query"},{"name":"approveRequiredFilter","in":"query"},{"name":"needsAttentionFilter","in":"query"},{"name":"pageNumber","in":"query"},{"name":"pageSize","in":"query"}],
+  }],
   ["list-organizations", {
     name: "list-organizations",
     description: "This endpoint returns the list of the Organizations that belongs to the user.",
@@ -174,6 +204,12 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
           environmentId: z.string().uuid().describe("Identifier of the Environment."),
           environmentAccessType: z.enum(["full", "readOnly", "none"]).describe("Represent the environment specific Feature Management permission."),
         })).nullable().optional().describe("List of environment specific permissions."),
+        approvalPermissionType: z.enum(["cannotApprove", "canApproveOthers", "canBypassApproval", "custom"]).optional().describe("Represents the permission group level change request approval permission."),
+        newEnvironmentApprovalPermissionType: z.enum(["cannotApprove", "canApproveOthers", "canBypassApproval"]).optional().describe("Represents the environment specific change request approval permission."),
+        environmentApprovalPermissions: z.array(z.object({
+          environmentId: z.string().uuid().describe("Identifier of the Environment."),
+          environmentApprovalPermissionType: z.enum(["cannotApprove", "canApproveOthers", "canBypassApproval"]).describe("Represents the environment specific change request approval permission."),
+        })).nullable().optional().describe("List of environment specific change request approval permissions."),
         canDisable2FA: z.boolean().optional().describe("Group members can disable two-factor authentication for other members."),
       }),
     },
@@ -220,9 +256,9 @@ The Parameters dictionary differs for each IntegrationType:
     inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
-        integrationType: z.enum(["dataDog", "slack", "amplitude", "mixPanel", "segment", "pubNub"]),
+        integrationType: z.enum(["dataDog", "slack", "amplitude", "mixPanel", "segment", "pubNub"]).describe("The type of the Integration."),
         name: z.string().min(1).max(255).describe("Name of the Integration."),
-        parameters: z.record(z.string().nullable()).describe("Parameters of the Integration."),
+        parameters: z.record(z.string()).describe("Parameters of the Integration."),
         environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all the Environments are connected."),
         configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all the Configs are connected."),
       }),
@@ -286,11 +322,12 @@ identified by the \`configId\` parameter.
     inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       requestBody: z.object({
-        hint: z.string().min(0).max(1000).nullable().describe("A short description for the setting, shown on the Dashboard UI."),
-        tags: z.array(z.number().int()).nullable().describe("The IDs of the tags which are attached to the setting."),
-        order: z.number().int().nullable().describe("The order of the Setting represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
-        key: z.string().min(1).max(255).describe("The key of the Feature Flag or Setting."),
         name: z.string().min(1).max(255).describe("The name of the Feature Flag or Setting."),
+        hint: z.string().min(0).max(1000).nullable().optional().describe("A short description for the setting, shown on the Dashboard UI."),
+        tags: z.array(z.number().int()).nullable().optional().describe("The IDs of the tags which are attached to the setting."),
+        order: z.number().int().nullable().optional().describe("The order of the Setting represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers."),
+        isJson: z.boolean().nullable().optional().describe("Indicates whether this setting should validate string values as JSON values."),
+        key: z.string().min(1).max(255).describe("The key of the Feature Flag or Setting."),
         settingType: z.enum(["boolean", "string", "int", "double"]).describe("The type of the Feature Flag or Setting."),
         predefinedVariations: z.array(z.object({
           value: z.object({
@@ -315,31 +352,26 @@ identified by the \`configId\` parameter.
   }],
   ["list-auditlogs", {
     name: "list-auditlogs",
-    description: `This endpoint returns the list of Audit log items for a given Product 
-and the result can be optionally filtered by Config and/or Environment.
-
-If neither \`fromUtcDateTime\` nor \`toUtcDateTime\` is set, the audit logs for the **last 7 days** will be returned.
-
-The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **30 days**.`,
+    description: `This endpoint returns the list of Audit log items for a given Product and the result can be optionally filtered by Config and/or Environment.`,
     inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       configId: z.string().uuid().optional().describe("The identifier of the Config."),
       environmentId: z.string().uuid().optional().describe("The identifier of the Environment."),
       auditLogType: z.enum([
-        "productCreated", "productChanged", "productOwnershipTransferred", "productDeleted", "productsReordered",
+        "productCreated", "productChanged", "productDeleted", "productsReordered", "productPreferencesUpdated",
         "teamMemberInvited", "teamMemberInvitationRevoked", "teamMemberJoined", "teamMemberPermissionGroupChanged",
         "teamMemberRemoved", "teamMemberLeft", "teamMemberInvitationChanged", "teamMemberInvitationResent",
-        "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered",
-        "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated",
-        "settingChanged", "settingDeleted", "settingsReordered", "predefinedVariationsChanged",
-        "settingConvertedToPredefinedVariations", "settingConvertedToFreeFormValues", "settingValueChanged", "webHookCreated",
-        "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted",
-        "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged",
-        "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded",
-        "organizationRemoved", "organizationChanged", "organizationSubscriptionTypeChanged", "organizationAdminChanged",
-        "organizationAdminLeft", "twoFactorDisabledForMember", "tagAdded", "tagChanged", "tagRemoved", "settingTagAdded",
-        "settingTagRemoved", "publicApiAccessTokenAdded", "publicApiAccessTokenRemoved", "domainAdded", "domainVerified",
-        "domainRemoved", "domainSamlConfigured", "domainSamlDeleted", "autoProvisioningConfigurationChanged",
+        "teamMemberInvitationRejected", "teamMemberAddedToProduct", "configCreated", "configChanged", "configDeleted",
+        "configsReordered", "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered",
+        "settingCreated", "settingChanged", "settingDeleted", "settingsReordered", "predefinedVariationsChanged",
+        "settingConvertedToPredefinedVariations", "settingConvertedToFreeFormValues", "settingValueChanged",
+        "webHookCreated", "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged",
+        "permissionGroupDeleted", "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded",
+        "integrationChanged", "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved",
+        "organizationAdded", "organizationChanged", "organizationSubscriptionTypeChanged", "organizationAdminChanged",
+        "organizationAdminLeft", "twoFactorDisabledForMember", "tagAdded", "tagChanged", "tagRemoved",
+        "settingTagAdded", "settingTagRemoved", "publicApiAccessTokenAdded", "publicApiAccessTokenRemoved",
+        "domainAdded", "domainVerified", "domainRemoved", "autoProvisioningConfigurationChanged",
         "samlIdpConfigurationAdded", "samlIdpConfigurationRemoved", "samlIdpConfigurationUpdated",
         "autoProvisioningEnabledChanged", "organizationMemberJoined", "organizationMemberProductJoinRequested",
         "organizationMemberProductJoinRequestRejected", "organizationMemberProductJoinRequestApproved",
@@ -350,14 +382,21 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
         "userDisabled", "awsConnected", "awsDisconnected", "userEnabled", "syncUserDeleted", "syncGroupDeleted",
         "proxyConfigurationCreated", "proxyConfigurationChanged", "proxyConfigurationDeleted",
         "proxyConfigurationSecretRegenerated", "proxyNotificationSettingsUpdated", "proxyNotificationSettingsDeleted",
-        "proxyNotificationSigningKeyAdded", "proxyNotificationSigningKeyDeleted",
+        "proxyNotificationSigningKeyAdded", "proxyNotificationSigningKeyDeleted", "changeRequestCreated",
+        "changeRequestUpdated", "changeRequestSettingValuesUpdated", "changeRequestSettingValueRebased",
+        "changeRequestApproved", "changeRequestApprovalDismissed", "changeRequestApplied",
+        "changeRequestAppliedOnSchedule", "changeRequestClosed", "changeRequestNeedsAttention",
+        "changeRequestCommentAdded", "changeRequestCommentEdited", "changeRequestCommentDeleted",
+        "changeRequestSettingDeleted", "changeRequestNeedsAttentionFixed", "changeRequestOwnershipClaimed",
       ]).nullable().optional().describe("Filter Audit logs by Audit log type."),
       fromUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by starting UTC date."),
       toUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by ending UTC date."),
+      pageNumber: z.number().int().min(1).max(2147483647).describe("Page number (min: 1).").default(1),
+      pageSize: z.number().int().min(1).max(100).describe("Page size (min: 1, max: 100).").default(100),
     },
     method: "get",
-    pathTemplate: "/v1/products/{productId}/auditlogs",
-    executionParameters: [{ "name": "productId", "in": "path" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "auditLogType", "in": "query" }, { "name": "fromUtcDateTime", "in": "query" }, { "name": "toUtcDateTime", "in": "query" }],
+    pathTemplate: "/v2/products/{productId}/auditlogs",
+    executionParameters: [{"name":"productId","in":"path"},{"name":"configId","in":"query"},{"name":"environmentId","in":"query"},{"name":"auditLogType","in":"query"},{"name":"fromUtcDateTime","in":"query"},{"name":"toUtcDateTime","in":"query"},{"name":"pageNumber","in":"query"},{"name":"pageSize","in":"query"}],
   }],
   ["list-staleflags", {
     name: "list-staleflags",
@@ -478,34 +517,40 @@ identified by the \`permissionGroupId\`.`,
     inputSchema: {
       permissionGroupId: z.number().int().describe("The identifier of the Permission Group."),
       requestBody: z.object({
-        name: z.string().min(0).max(255).nullable().describe("Name of the Permission Group."),
-        canManageMembers: z.boolean().nullable().describe("Group members can manage team members."),
-        canCreateOrUpdateConfig: z.boolean().nullable().describe("Group members can create/update Configs."),
-        canDeleteConfig: z.boolean().nullable().describe("Group members can delete Configs."),
-        canCreateOrUpdateEnvironment: z.boolean().nullable().describe("Group members can create/update Environments."),
-        canDeleteEnvironment: z.boolean().nullable().describe("Group members can delete Environments."),
-        canCreateOrUpdateSetting: z.boolean().nullable().describe("Group members can create/update Feature Flags and Settings."),
-        canTagSetting: z.boolean().nullable().describe("Group members can attach/detach Tags to Feature Flags and Settings."),
-        canDeleteSetting: z.boolean().nullable().describe("Group members can delete Feature Flags and Settings."),
-        canCreateOrUpdateTag: z.boolean().nullable().describe("Group members can create/update Tags."),
-        canDeleteTag: z.boolean().nullable().describe("Group members can delete Tags."),
-        canManageWebhook: z.boolean().nullable().describe("Group members can create/update/delete Webhooks."),
-        canUseExportImport: z.boolean().nullable().describe("Group members can use the export/import feature."),
-        canManageProductPreferences: z.boolean().nullable().describe("Group members can update Product preferences."),
-        canManageIntegrations: z.boolean().nullable().describe("Group members can add and configure integrations."),
-        canViewSdkKey: z.boolean().nullable().describe("Group members has access to SDK keys."),
-        canRotateSdkKey: z.boolean().nullable().describe("Group members can rotate SDK keys."),
-        canCreateOrUpdateSegments: z.boolean().nullable().describe("Group members can create/update Segments."),
-        canDeleteSegments: z.boolean().nullable().describe("Group members can delete Segments."),
-        canViewProductAuditLog: z.boolean().nullable().describe("Group members has access to audit logs."),
-        canViewProductStatistics: z.boolean().nullable().describe("Group members has access to product statistics."),
-        canDisable2FA: z.boolean().nullable().describe("Group members can disable two-factor authentication for other members."),
-        accessType: z.enum(["readOnly", "full", "custom"]).nullable().describe("Represent the Feature Management permission."),
-        newEnvironmentAccessType: z.enum(["full", "readOnly", "none"]).nullable().describe("Represent the environment specific Feature Management permission."),
+        name: z.string().min(0).max(255).nullable().optional().describe("Name of the Permission Group."),
+        canManageMembers: z.boolean().nullable().optional().describe("Group members can manage team members."),
+        canCreateOrUpdateConfig: z.boolean().nullable().optional().describe("Group members can create/update Configs."),
+        canDeleteConfig: z.boolean().nullable().optional().describe("Group members can delete Configs."),
+        canCreateOrUpdateEnvironment: z.boolean().nullable().optional().describe("Group members can create/update Environments."),
+        canDeleteEnvironment: z.boolean().nullable().optional().describe("Group members can delete Environments."),
+        canCreateOrUpdateSetting: z.boolean().nullable().optional().describe("Group members can create/update Feature Flags and Settings."),
+        canTagSetting: z.boolean().nullable().optional().describe("Group members can attach/detach Tags to Feature Flags and Settings."),
+        canDeleteSetting: z.boolean().nullable().optional().describe("Group members can delete Feature Flags and Settings."),
+        canCreateOrUpdateTag: z.boolean().nullable().optional().describe("Group members can create/update Tags."),
+        canDeleteTag: z.boolean().nullable().optional().describe("Group members can delete Tags."),
+        canManageWebhook: z.boolean().nullable().optional().describe("Group members can create/update/delete Webhooks."),
+        canUseExportImport: z.boolean().nullable().optional().describe("Group members can use the export/import feature."),
+        canManageProductPreferences: z.boolean().nullable().optional().describe("Group members can update Product preferences."),
+        canManageIntegrations: z.boolean().nullable().optional().describe("Group members can add and configure integrations."),
+        canViewSdkKey: z.boolean().nullable().optional().describe("Group members has access to SDK keys."),
+        canRotateSdkKey: z.boolean().nullable().optional().describe("Group members can rotate SDK keys."),
+        canCreateOrUpdateSegments: z.boolean().nullable().optional().describe("Group members can create/update Segments."),
+        canDeleteSegments: z.boolean().nullable().optional().describe("Group members can delete Segments."),
+        canViewProductAuditLog: z.boolean().nullable().optional().describe("Group members has access to audit logs."),
+        canViewProductStatistics: z.boolean().nullable().optional().describe("Group members has access to product statistics."),
+        canDisable2FA: z.boolean().nullable().optional().describe("Group members can disable two-factor authentication for other members."),
+        accessType: z.enum(["readOnly", "full", "custom"]).nullable().optional().describe("Represent the Feature Management permission."),
+        newEnvironmentAccessType: z.enum(["full", "readOnly", "none"]).nullable().optional().describe("Represent the environment specific Feature Management permission."),
         environmentAccesses: z.array(z.object({
           environmentId: z.string().uuid().describe("Identifier of the Environment."),
           environmentAccessType: z.enum(["full", "readOnly", "none"]).describe("Represent the environment specific Feature Management permission."),
-        })).nullable().describe("List of environment specific permissions."),
+        })).nullable().optional().describe("List of environment specific permissions."),
+        approvalPermissionType: z.enum(["cannotApprove", "canApproveOthers", "canBypassApproval", "custom"]).nullable().optional().describe("Represents the permission group level change request approval permission."),
+        newEnvironmentApprovalPermissionType: z.enum(["cannotApprove", "canApproveOthers", "canBypassApproval"]).nullable().optional().describe("Represents the environment specific change request approval permission."),
+        environmentApprovalPermissions: z.array(z.object({
+          environmentId: z.string().uuid().describe("Identifier of the Environment."),
+          environmentApprovalPermissionType: z.enum(["cannotApprove", "canApproveOthers", "canBypassApproval"]).describe("Represents the environment specific change request approval permission."),
+        })).nullable().optional().describe("List of environment specific change request approval permissions."),
       }),
     },
     method: "put",
@@ -561,7 +606,7 @@ The Parameters dictionary differs for each IntegrationType:
       integrationId: z.string().uuid().describe("The identifier of the Integration."),
       requestBody: z.object({
         name: z.string().min(1).max(255).describe("Name of the Integration."),
-        parameters: z.record(z.string().nullable()).describe("Parameters of the Integration."),
+        parameters: z.record(z.string()).describe("Parameters of the Integration."),
         environmentIds: z.array(z.string().uuid()).describe("List of Environment IDs that are connected with this Integration. If the list is empty, all the Environments are connected."),
         configIds: z.array(z.string().uuid()).describe("List of Config IDs that are connected with this Integration. If the list is empty, all the Configs are connected."),
       }),
@@ -593,32 +638,27 @@ The Parameters dictionary differs for each IntegrationType:
   }],
   ["list-organization-auditlogs", {
     name: "list-organization-auditlogs",
-    description: `This endpoint returns the list of Audit log items for a given Organization 
-and the result can be optionally filtered by Product and/or Config and/or Environment.
-
-If neither \`fromUtcDateTime\` nor \`toUtcDateTime\` is set, the audit logs for the **last 7 days** will be returned.
-
-The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **30 days**.`,
+    description: `This endpoint returns the list of Audit log items for a given Organization and the result can be optionally filtered by Product and/or Config and/or Environment.`,
     inputSchema: {
       organizationId: z.string().uuid().describe("The identifier of the Organization."),
       productId: z.string().uuid().optional().describe("The identifier of the Product."),
       configId: z.string().uuid().optional().describe("The identifier of the Config."),
       environmentId: z.string().uuid().optional().describe("The identifier of the Environment."),
       auditLogType: z.enum([
-        "productCreated", "productChanged", "productOwnershipTransferred", "productDeleted", "productsReordered",
+        "productCreated", "productChanged", "productDeleted", "productsReordered", "productPreferencesUpdated",
         "teamMemberInvited", "teamMemberInvitationRevoked", "teamMemberJoined", "teamMemberPermissionGroupChanged",
         "teamMemberRemoved", "teamMemberLeft", "teamMemberInvitationChanged", "teamMemberInvitationResent",
-        "teamMemberInvitationRejected", "configCreated", "configChanged", "configDeleted", "configsReordered",
-        "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered", "settingCreated",
-        "settingChanged", "settingDeleted", "settingsReordered", "predefinedVariationsChanged",
-        "settingConvertedToPredefinedVariations", "settingConvertedToFreeFormValues", "settingValueChanged", "webHookCreated",
-        "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged", "permissionGroupDeleted",
-        "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded", "integrationChanged",
-        "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved", "organizationAdded",
-        "organizationRemoved", "organizationChanged", "organizationSubscriptionTypeChanged", "organizationAdminChanged",
-        "organizationAdminLeft", "twoFactorDisabledForMember", "tagAdded", "tagChanged", "tagRemoved", "settingTagAdded",
-        "settingTagRemoved", "publicApiAccessTokenAdded", "publicApiAccessTokenRemoved", "domainAdded", "domainVerified",
-        "domainRemoved", "domainSamlConfigured", "domainSamlDeleted", "autoProvisioningConfigurationChanged",
+        "teamMemberInvitationRejected", "teamMemberAddedToProduct", "configCreated", "configChanged", "configDeleted",
+        "configsReordered", "environmentCreated", "environmentChanged", "environmentDeleted", "environmentsReordered",
+        "settingCreated", "settingChanged", "settingDeleted", "settingsReordered", "predefinedVariationsChanged",
+        "settingConvertedToPredefinedVariations", "settingConvertedToFreeFormValues", "settingValueChanged",
+        "webHookCreated", "webHookChanged", "webHookDeleted", "permissionGroupCreated", "permissionGroupChanged",
+        "permissionGroupDeleted", "permissionGroupDefault", "apiKeyAdded", "apiKeyRemoved", "integrationAdded",
+        "integrationChanged", "integrationRemoved", "apiKeyConnected", "integrationLinkAdded", "integrationLinkRemoved",
+        "organizationAdded", "organizationChanged", "organizationSubscriptionTypeChanged", "organizationAdminChanged",
+        "organizationAdminLeft", "twoFactorDisabledForMember", "tagAdded", "tagChanged", "tagRemoved",
+        "settingTagAdded", "settingTagRemoved", "publicApiAccessTokenAdded", "publicApiAccessTokenRemoved",
+        "domainAdded", "domainVerified", "domainRemoved", "autoProvisioningConfigurationChanged",
         "samlIdpConfigurationAdded", "samlIdpConfigurationRemoved", "samlIdpConfigurationUpdated",
         "autoProvisioningEnabledChanged", "organizationMemberJoined", "organizationMemberProductJoinRequested",
         "organizationMemberProductJoinRequestRejected", "organizationMemberProductJoinRequestApproved",
@@ -629,14 +669,21 @@ The distance between \`fromUtcDateTime\` and \`toUtcDateTime\` cannot exceed **3
         "userDisabled", "awsConnected", "awsDisconnected", "userEnabled", "syncUserDeleted", "syncGroupDeleted",
         "proxyConfigurationCreated", "proxyConfigurationChanged", "proxyConfigurationDeleted",
         "proxyConfigurationSecretRegenerated", "proxyNotificationSettingsUpdated", "proxyNotificationSettingsDeleted",
-        "proxyNotificationSigningKeyAdded", "proxyNotificationSigningKeyDeleted",
+        "proxyNotificationSigningKeyAdded", "proxyNotificationSigningKeyDeleted", "changeRequestCreated",
+        "changeRequestUpdated", "changeRequestSettingValuesUpdated", "changeRequestSettingValueRebased",
+        "changeRequestApproved", "changeRequestApprovalDismissed", "changeRequestApplied",
+        "changeRequestAppliedOnSchedule", "changeRequestClosed", "changeRequestNeedsAttention",
+        "changeRequestCommentAdded", "changeRequestCommentEdited", "changeRequestCommentDeleted",
+        "changeRequestSettingDeleted", "changeRequestNeedsAttentionFixed", "changeRequestOwnershipClaimed",
       ]).nullable().optional().describe("Filter Audit logs by Audit log type."),
       fromUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by starting UTC date."),
       toUtcDateTime: z.string().datetime().optional().describe("Filter Audit logs by ending UTC date."),
+      pageNumber: z.number().int().min(1).max(2147483647).describe("Page number (min: 1).").default(1),
+      pageSize: z.number().int().min(1).max(100).describe("Page size (min: 1, max: 100).").default(100),
     },
     method: "get",
-    pathTemplate: "/v1/organizations/{organizationId}/auditlogs",
-    executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "productId", "in": "query" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "auditLogType", "in": "query" }, { "name": "fromUtcDateTime", "in": "query" }, { "name": "toUtcDateTime", "in": "query" }],
+    pathTemplate: "/v2/organizations/{organizationId}/auditlogs",
+    executionParameters: [{"name":"organizationId","in":"path"},{"name":"productId","in":"query"},{"name":"configId","in":"query"},{"name":"environmentId","in":"query"},{"name":"auditLogType","in":"query"},{"name":"fromUtcDateTime","in":"query"},{"name":"toUtcDateTime","in":"query"},{"name":"pageNumber","in":"query"},{"name":"pageSize","in":"query"}],
   }],
   ["list-organization-members", {
     name: "list-organization-members",
@@ -776,19 +823,119 @@ identified by the \`productId\`.`,
     inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       requestBody: z.object({
-        reasonRequired: z.boolean().nullable().describe("Indicates that a mandatory note is required for saving and publishing."),
-        keyGenerationMode: z.enum(["camelCase", "lowerCase", "upperCase", "pascalCase", "kebabCase"]).nullable().describe("Determines the Feature Flag key generation mode."),
-        showVariationId: z.boolean().nullable().describe("Indicates whether a variation ID's must be shown on the ConfigCat Dashboard."),
-        mandatorySettingHint: z.boolean().nullable().describe("Indicates whether Feature flags and Settings must have a hint."),
+        reasonRequired: z.boolean().nullable().optional().describe("Indicates that a mandatory note is required for saving and publishing."),
+        keyGenerationMode: z.enum(["camelCase", "lowerCase", "upperCase", "pascalCase", "kebabCase"]).nullable().optional().describe("Determines the Feature Flag key generation mode."),
+        showVariationId: z.boolean().nullable().optional().describe("Indicates whether a variation ID's must be shown on the ConfigCat Dashboard."),
+        mandatorySettingHint: z.boolean().nullable().optional().describe("Indicates whether Feature flags and Settings must have a hint."),
         reasonRequiredEnvironments: z.array(z.object({
           environmentId: z.string().uuid().describe("Identifier of the Environment."),
           reasonRequired: z.boolean().describe("Indicates that a mandatory note is required in this Environment for saving and publishing."),
-        })).nullable().describe("List of Environments where mandatory note must be set before saving and publishing."),
+        })).nullable().optional().describe("List of Environments where mandatory note must be set before saving and publishing."),
+        approveRequired: z.boolean().nullable().optional().describe("Indicates that a mandatory approval is required before changes are applied."),
+        approveRequiredEnvironments: z.array(z.object({
+          environmentId: z.string().uuid().describe("Identifier of the Environment."),
+          approveRequired: z.boolean().describe("Indicates that a mandatory approval is required in this Environment before changes are applied."),
+        })).nullable().optional().describe("List of Environments where mandatory approval must be given before changes are applied."),
       }),
     },
     method: "post",
     pathTemplate: "/v1/products/{productId}/preferences",
     executionParameters: [{ "name": "productId", "in": "path" }],
+  }],
+  ["get-change-request-proposed-changes", {
+    name: "get-change-request-proposed-changes",
+    description: `Returns the proposed changes to the Settings included in a Change Request.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+      settingId: z.number().int().optional().describe("The optional identifier of the Setting."),
+    },
+    method: "get",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/proposed-changes",
+    executionParameters: [{"name":"changeRequestId","in":"path"},{"name":"settingId","in":"query"}],
+  }],
+  ["update-change-request-proposed-changes", {
+    name: "update-change-request-proposed-changes",
+    description: `Updates the proposed changes to the Settings included in a Change Request.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+      settingId: z.number().int().optional().describe("The optional identifier of the Setting."),
+      requestBody: z.object({
+        proposedChanges: z.array(z.object({
+          defaultValue: z.object({
+            boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+            stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+            intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+            doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+            predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+          }).describe("Represents the value of a Feature Flag or Setting."),
+          targetingRules: z.array(z.object({
+            conditions: z.array(z.object({
+              userCondition: z.object({
+                comparisonAttribute: z.string().min(1).max(1000).describe("The User Object attribute that the condition is based on. Can be \"User ID\", \"Email\", \"Country\" or any custom attribute."),
+                comparator: z.enum([
+                  "isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf",
+                  "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals",
+                  "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals",
+                  "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals",
+                  "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf",
+                  "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf",
+                  "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf",
+                  "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf",
+                  "arrayDoesNotContainAnyOf",
+                ]).describe("The comparison operator which defines the relation between the comparison attribute and the comparison value."),
+                comparisonValue: z.object({
+                  stringValue: z.string().nullable().optional().describe("The string representation of the comparison value."),
+                  doubleValue: z.number().nullable().optional().describe("The number representation of the comparison value."),
+                  listValue: z.array(z.object({
+                    value: z.string().describe("The actual comparison value."),
+                    hint: z.string().min(0).max(1500).nullable().optional().describe("An optional hint for the comparison value."),
+                  })).nullable().optional().describe("The list representation of the comparison value."),
+                }).describe("The value that the user object's attribute is compared to."),
+              }).describe("Describes a condition that is based on user attributes."),
+              segmentCondition: z.object({
+                segmentId: z.string().uuid().describe("The segment's identifier."),
+                comparator: z.enum(["isIn", "isNotIn"]).describe("The segment comparison operator used during the evaluation process."),
+              }).nullable().optional().describe("Describes a condition that is based on a segment."),
+              prerequisiteFlagCondition: z.object({
+                prerequisiteSettingId: z.number().int().describe("The prerequisite flag's identifier."),
+                comparator: z.enum(["equals", "doesNotEqual"]).describe("Prerequisite flag comparison operator used during the evaluation process."),
+                prerequisiteComparisonValue: z.object({
+                  boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+                  stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+                  intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+                  doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                  predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+                }).describe("Represents the value of a Feature Flag or Setting."),
+              }).nullable().optional().describe("Describes a condition that is based on a prerequisite flag."),
+            })).nullable().optional().describe("The list of conditions that are combined with logical AND operators.\nIt can be one of the following:\n- User condition\n- Segment condition\n- Prerequisite flag condition"),
+            percentageOptions: z.array(z.object({
+              percentage: z.number().int().describe("A number between 0 and 100 that represents a randomly allocated fraction of the users."),
+              value: z.object({
+                boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+                stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+                intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+                doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+              }).describe("Represents the value of a Feature Flag or Setting."),
+            })).nullable().optional().describe("The percentage options from where the evaluation process will choose a value based on the flag's percentage evaluation attribute."),
+            value: z.object({
+              boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+              stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+              intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+              doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+              predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+            }).nullable().optional().describe("Represents the value of a Feature Flag or Setting."),
+          })).nullable().optional().describe("The targeting rules of the Feature Flag or Setting."),
+          percentageEvaluationAttribute: z.string().max(1000).nullable().optional().describe("The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute."),
+          settingId: z.number().int().describe("The identifier of the feature flag or setting."),
+          latestVersionId: z.string().uuid().nullable().optional().describe("The version identifier of the last change made to the Feature Flag or Setting in the Environment. It can be used to make sure concurrent updates are not overwriting each other. If provided and the version identifier does not match the current version, the update will be rejected with a 409 Conflict response. The latest version id can be acquired from the `LastVersionId` property of the response models."),
+        })).describe("The setting values to update on the Change Request."),
+        forced: z.boolean().describe("When true, skips conflict (LatestVersionId) checking."),
+      }),
+    },
+    method: "put",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/proposed-changes",
+    executionParameters: [{"name":"changeRequestId","in":"path"},{"name":"settingId","in":"query"}],
   }],
   ["get-segment", {
     name: "get-segment",
@@ -858,7 +1005,8 @@ want to change in its original state. Not listing one means it will reset.`,
         name: z.string().min(1).max(255).describe("The name of the Feature Flag or Setting."),
         hint: z.string().min(0).max(1000).nullable().optional().describe("A short description for the setting, shown on the Dashboard UI."),
         tags: z.array(z.number().int()).nullable().optional().describe("The IDs of the tags which are attached to the setting."),
-        order: z.number().int().nullable().optional().describe("The order of the Setting represented on the ConfigCat Dashboard. Determined from an ascending sequence of integers."),
+        order: z.number().int().nullable().optional().describe("The order of the Setting represented on the ConfigCat Dashboard.\nDetermined from an ascending sequence of integers."),
+        isJson: z.boolean().nullable().optional().describe("Indicates whether this setting should validate string values as JSON values."),
       }),
     },
     method: "put",
@@ -1219,8 +1367,10 @@ So we get a response like this:
 \`\`\``,
     inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
-      settingId: z.number().int().describe("The identifier of the Setting."),
+      settingId: z.number().int().describe("The id of the Setting."),
       reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
+      bypassApproval: z.boolean().optional().describe("Whether to bypass the approval process and directly apply the change. This is only applicable for users with bypass approval permission."),
+      latestVersionId: z.string().uuid().optional().describe("Optional. The version identifier of the last change made to the Feature Flag or Setting in the Environment. It can be used to make sure concurrent updates are not overwriting each other. If provided and the version identifier does not match the current version, the update will be rejected with a 409 Conflict response. The latest version id can be acquired from the `LastVersionId` property of the response models."),
       requestBody: z.object({
         defaultValue: z.object({
           boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
@@ -1258,7 +1408,7 @@ So we get a response like this:
                 predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
               }).describe("Represents the value of a Feature Flag or Setting."),
             }).nullable().optional().describe("Describes a condition that is based on a prerequisite flag."),
-          })).nullable().optional().describe("The list of conditions that are combined with logical AND operators. It can be one of the following: User condition, Segment condition, Prerequisite flag condition"),
+          })).nullable().optional().describe("The list of conditions that are combined with logical AND operators.\nIt can be one of the following:\n- User condition\n- Segment condition\n- Prerequisite flag condition"),
           percentageOptions: z.array(z.object({
             percentage: z.number().int().describe("A number between 0 and 100 that represents a randomly allocated fraction of the users."),
             value: z.object({
@@ -1282,7 +1432,7 @@ So we get a response like this:
     },
     method: "put",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
-    executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
+    executionParameters: [{"name":"environmentId","in":"path"},{"name":"settingId","in":"path"},{"name":"reason","in":"query"},{"name":"bypassApproval","in":"query"},{"name":"latestVersionId","in":"query"}],
   }],
   ["update-setting-value-v2", {
     name: "update-setting-value-v2",
@@ -1363,8 +1513,10 @@ So we get a response like this:
 \`\`\``,
     inputSchema: {
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
-      settingId: z.number().int().describe("The identifier of the Setting."),
+      settingId: z.number().int().describe("The id of the Setting."),
       reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
+      bypassApproval: z.boolean().optional().describe("Whether to bypass the approval process and directly apply the change. This is only applicable for users with bypass approval permission."),
+      latestVersionId: z.string().uuid().optional().describe("Optional. The version identifier of the last change made to the Feature Flag or Setting in the Environment. It can be used to make sure concurrent updates are not overwriting each other. If provided and the version identifier does not match the current version, the update will be rejected with a 409 Conflict response. The latest version id can be acquired from the `LastVersionId` property of the response models."),
       requestBody: z.array(z.object({
         op: z.enum(["unknown", "add", "remove", "replace", "move", "copy", "test"]).describe("The operation type."),
         path: z.string().min(1).describe("The source path."),
@@ -1374,7 +1526,7 @@ So we get a response like this:
     },
     method: "patch",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
-    executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }],
+    executionParameters: [{"name":"environmentId","in":"path"},{"name":"settingId","in":"path"},{"name":"reason","in":"query"},{"name":"bypassApproval","in":"query"},{"name":"latestVersionId","in":"query"}],
   }],
   ["get-setting-values", {
     name: "get-setting-values",
@@ -1586,9 +1738,11 @@ So we get a response like this:
 }
 \`\`\``,
     inputSchema: {
-      configId: z.string().uuid(),
-      environmentId: z.string().uuid(),
-      reason: z.string().optional(),
+      configId: z.string().uuid().describe("The identifier of the Config."),
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+      reason: z.string().optional().describe("The reason note for the Audit Log if the Product's \"Config changes require a reason\" preference is turned on."),
+      bypassApproval: z.boolean().optional().describe("Whether to bypass the approval process and directly apply the change. This is only applicable for users with bypass approval permission."),
+      latestVersionId: z.string().uuid().optional().describe("Optional. The version identifier of the last change made to the Feature Flag or Setting in the Environment. It can be used to make sure concurrent updates are not overwriting each other. If provided and the version identifier does not match the current version, the update will be rejected with a 409 Conflict response. The latest version id can be acquired from the `LastVersionId` property of the response models."),
       requestBody: z.object({
         updateFormulas: z.array(z.object({
           defaultValue: z.object({
@@ -1617,7 +1771,7 @@ So we get a response like this:
                 comparator: z.enum(["isIn", "isNotIn"]).describe("The segment comparison operator used during the evaluation process."),
               }).nullable().optional().describe("Describes a condition that is based on a segment."),
               prerequisiteFlagCondition: z.object({
-                prerequisiteSettingId: z.number().int().describe("the prerequisite flag's identifier"),
+                prerequisiteSettingId: z.number().int().describe("The prerequisite flag's identifier."),
                 comparator: z.enum(["equals", "doesNotEqual"]).describe("Prerequisite flag comparison operator used during the evaluation process."),
                 prerequisiteComparisonValue: z.object({
                   boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
@@ -1626,8 +1780,8 @@ So we get a response like this:
                   doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
                   predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
                 }).describe("Represents the value of a Feature Flag or Setting."),
-              }).nullable().optional(),
-            })).nullable().optional(),
+              }).nullable().optional().describe("Describes a condition that is based on a prerequisite flag."),
+            })).nullable().optional().describe("The list of conditions that are combined with logical AND operators.\nIt can be one of the following:\n- User condition\n- Segment condition\n- Prerequisite flag condition"),
             percentageOptions: z.array(z.object({
               percentage: z.number().int().describe("A number between 0 and 100 that represents a randomly allocated fraction of the users."),
               value: z.object({
@@ -1653,7 +1807,7 @@ So we get a response like this:
     },
     method: "post",
     pathTemplate: "/v2/configs/{configId}/environments/{environmentId}/values",
-    executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }, { "name": "reason", "in": "query" }],
+    executionParameters: [{"name":"configId","in":"path"},{"name":"environmentId","in":"path"},{"name":"reason","in":"query"},{"name":"bypassApproval","in":"query"},{"name":"latestVersionId","in":"query"}],
   }],
   ["get-tag", {
     name: "get-tag",
@@ -1813,6 +1967,138 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
     pathTemplate: "/v1/webhooks/{webhookId}/keys",
     executionParameters: [{ "name": "webhookId", "in": "path" }],
   }],
+  ["add-change-request-comment", {
+    name: "add-change-request-comment",
+    description: `Adds a new comment to the Change Request.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+      requestBody: z.object({
+        body: z.string().min(0).max(5000).describe("The comment body."),
+      }),
+    },
+    method: "post",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/comments",
+    executionParameters: [{"name":"changeRequestId","in":"path"}],
+  }],
+  ["apply-change-request", {
+    name: "apply-change-request",
+    description: `Applies the Change Request. The proposed changes will be applied and published immediately.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+    },
+    method: "post",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/apply",
+    executionParameters: [{"name":"changeRequestId","in":"path"}],
+  }],
+  ["approve-change-request", {
+    name: "approve-change-request",
+    description: `Adds your approval to the Change Request.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+    },
+    method: "post",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/approve",
+    executionParameters: [{"name":"changeRequestId","in":"path"}],
+  }],
+  ["claim-change-request-ownership", {
+    name: "claim-change-request-ownership",
+    description: `Claims ownership of the Change Request.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+    },
+    method: "post",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/claim-ownership",
+    executionParameters: [{"name":"changeRequestId","in":"path"}],
+  }],
+  ["close-change-request", {
+    name: "close-change-request",
+    description: `Closes the Change Request without applying it.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+    },
+    method: "post",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/close",
+    executionParameters: [{"name":"changeRequestId","in":"path"}],
+  }],
+  ["create-change-request", {
+    name: "create-change-request",
+    description: `Creates a new Change Request for the specified Config and Environment.`,
+    inputSchema: {
+      configId: z.string().uuid().describe("The identifier of the Config."),
+      environmentId: z.string().uuid().describe("The identifier of the Environment."),
+      requestBody: z.object({
+        title: z.string().max(255).describe("The title of the Change Request."),
+        reason: z.string().max(1000).nullable().optional().describe("The optional notes describing the purpose of the Change Request. This will appear in the Audit Log (in the Notes section when you expand the corresponding entry) upon applying the change request."),
+        applyAt: z.string().datetime().nullable().optional().describe("The optional UTC date and time when the scheduled Change Request should be applied automatically."),
+        bypassApproval: z.boolean().optional().describe("When true, bypasses required approval checks for scheduled changes."),
+        proposedChanges: z.array(z.object({
+          proposedChange: z.object({
+            defaultValue: z.object({
+              boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+              stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+              intValue: z.number().nullable().optional().describe("The served value in case of a whole number Setting."),
+              doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+              predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+            }).describe("Represents the value of a Feature Flag or Setting."),
+            targetingRules: z.array(z.object({
+              conditions: z.array(z.object({
+                userCondition: z.object({
+                  comparisonAttribute: z.string().min(1).max(1000).describe("The User Object attribute that the condition is based on. Can be \"User ID\", \"Email\", \"Country\" or any custom attribute."),
+                  comparator: z.enum(["isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals", "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf", "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf", "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf", "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf", "arrayDoesNotContainAnyOf"]).describe("The comparison operator which defines the relation between the comparison attribute and the comparison value."),
+                  comparisonValue: z.object({
+                    stringValue: z.string().nullable().optional().describe("The string representation of the comparison value."),
+                    doubleValue: z.number().nullable().optional().describe("The number representation of the comparison value."),
+                    listValue: z.array(z.object({
+                      value: z.string().describe("The actual comparison value."),
+                      hint: z.string().min(0).max(1500).nullable().optional().describe("An optional hint for the comparison value."),
+                    })).nullable().optional().describe("The list representation of the comparison value."),
+                  }).describe("The value that the user object's attribute is compared to."),
+                }).nullable().optional().describe("Describes a condition that is based on user attributes."),
+                segmentCondition: z.object({
+                  segmentId: z.string().uuid().describe("The segment's identifier."),
+                  comparator: z.enum(["isIn", "isNotIn"]).describe("The segment comparison operator used during the evaluation process."),
+                }).nullable().optional().describe("Describes a condition that is based on a segment."),
+                prerequisiteFlagCondition: z.object({
+                  prerequisiteSettingId: z.number().int().describe("The prerequisite flag's identifier."),
+                  comparator: z.enum(["equals", "doesNotEqual"]).describe("Prerequisite flag comparison operator used during the evaluation process."),
+                  prerequisiteComparisonValue: z.object({
+                    boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+                    stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+                    intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+                    doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                    predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+                  }).describe("Represents the value of a Feature Flag or Setting."),
+                }).nullable().optional().describe("Describes a condition that is based on a prerequisite flag."),
+              })).nullable().optional().describe("The list of conditions that are combined with logical AND operators.\nIt can be one of the following:\n- User condition\n- Segment condition\n- Prerequisite flag condition"),
+              percentageOptions: z.array(z.object({
+                percentage: z.number().int().describe("A number between 0 and 100 that represents a randomly allocated fraction of the users."),
+                value: z.object({
+                  boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+                  stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+                  intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+                  doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                  predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+                }).describe("Represents the value of a Feature Flag or Setting."),
+              })).nullable().optional().describe("The percentage options from where the evaluation process will choose a value based on the flag's percentage evaluation attribute."),
+              value: z.object({
+                boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+                stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+                intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+                doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+              }).nullable().optional().describe("Represents the value of a Feature Flag or Setting."),
+            })).nullable().optional().describe("The targeting rules of the Feature Flag or Setting."),
+            percentageEvaluationAttribute: z.string().max(1000).nullable().optional().describe("The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute."),
+            settingId: z.number().int().describe("The identifier of the feature flag or setting."),
+            latestVersionId: z.string().uuid().nullable().optional().describe("The version identifier of the last change made to the Feature Flag or Setting in the Environment. It can be used to make sure concurrent updates are not overwriting each other. If provided and the version identifier does not match the current version, the update will be rejected with a 409 Conflict response. The latest version id can be acquired from the `LastVersionId` property of the response models."),
+          }).describe("The list of models describing the proposed changes to the Settings included in the new Change Request."),
+        })).describe("The list of models describing the proposed changes to the Settings included in the new Change Request."),
+      }),
+    },
+    method: "post",
+    pathTemplate: "/v2/configs/{configId}/environments/{environmentId}/change-requests",
+    executionParameters: [{"name":"configId","in":"path"},{"name":"environmentId","in":"path"}],
+  }],
   ["create-product", {
     name: "create-product",
     description: `This endpoint creates a new Product in a specified Organization 
@@ -1865,6 +2151,89 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     pathTemplate: "/v1/products/{productId}/members/invite",
     executionParameters: [{ "name": "productId", "in": "path" }],
   }],
+  ["remove-change-request-approval", {
+    name: "remove-change-request-approval",
+    description: `Removes your existing approval from the Change Request.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+    },
+    method: "post",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/remove-approval",
+    executionParameters: [{"name":"changeRequestId","in":"path"}],
+  }],
+  ["resolve-change-request-setting-conflicts", {
+    name: "resolve-change-request-setting-conflicts",
+    description: `Updates the proposed changes to a Setting included in the Change Request to resolve conflicts caused by concurrently published changes.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+      settingId: z.number().int().describe("The identifier of the Setting."),
+      requestBody: z.object({
+        proposedChange: z.object({
+          defaultValue: z.object({
+            boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+            stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+            intValue: z.number().nullable().optional().describe("The served value in case of a whole number Setting."),
+            doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+            predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+          }).describe("Represents the value of a Feature Flag or Setting."),
+          targetingRules: z.array(z.object({
+            conditions: z.array(z.object({
+              userCondition: z.object({
+                comparisonAttribute: z.string().min(1).max(1000).describe("The User Object attribute that the condition is based on. Can be \"User ID\", \"Email\", \"Country\" or any custom attribute."),
+                comparator: z.enum(["isOneOf", "isNotOneOf", "containsAnyOf", "doesNotContainAnyOf", "semVerIsOneOf", "semVerIsNotOneOf", "semVerLess", "semVerLessOrEquals", "semVerGreater", "semVerGreaterOrEquals", "numberEquals", "numberDoesNotEqual", "numberLess", "numberLessOrEquals", "numberGreater", "numberGreaterOrEquals", "sensitiveIsOneOf", "sensitiveIsNotOneOf", "dateTimeBefore", "dateTimeAfter", "sensitiveTextEquals", "sensitiveTextDoesNotEqual", "sensitiveTextStartsWithAnyOf", "sensitiveTextNotStartsWithAnyOf", "sensitiveTextEndsWithAnyOf", "sensitiveTextNotEndsWithAnyOf", "sensitiveArrayContainsAnyOf", "sensitiveArrayDoesNotContainAnyOf", "textEquals", "textDoesNotEqual", "textStartsWithAnyOf", "textNotStartsWithAnyOf", "textEndsWithAnyOf", "textNotEndsWithAnyOf", "arrayContainsAnyOf", "arrayDoesNotContainAnyOf"]).describe("The comparison operator which defines the relation between the comparison attribute and the comparison value."),
+                comparisonValue: z.object({
+                  stringValue: z.string().nullable().optional().describe("The string representation of the comparison value."),
+                  doubleValue: z.number().nullable().optional().describe("The number representation of the comparison value."),
+                  listValue: z.array(z.object({
+                    value: z.string().describe("The actual comparison value."),
+                    hint: z.string().min(0).max(1500).nullable().optional().describe("An optional hint for the comparison value."),
+                  })).nullable().optional().describe("The list representation of the comparison value."),
+                }).describe("The value that the user object's attribute is compared to."),
+              }).nullable().optional().describe("Describes a condition that is based on user attributes."),
+              segmentCondition: z.object({
+                segmentId: z.string().uuid().describe("The segment's identifier."),
+                comparator: z.enum(["isIn", "isNotIn"]).describe("The segment comparison operator used during the evaluation process."),
+              }).nullable().optional().describe("Describes a condition that is based on a segment."),
+              prerequisiteFlagCondition: z.object({
+                prerequisiteSettingId: z.number().int().describe("The prerequisite flag's identifier."),
+                comparator: z.enum(["equals", "doesNotEqual"]).describe("Prerequisite flag comparison operator used during the evaluation process."),
+                prerequisiteComparisonValue: z.object({
+                  boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+                  stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+                  intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+                  doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                  predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+                }).describe("Represents the value of a Feature Flag or Setting."),
+              }).nullable().optional().describe("Describes a condition that is based on a prerequisite flag."),
+            })).nullable().optional().describe("The list of conditions that are combined with logical AND operators.\nIt can be one of the following:\n- User condition\n- Segment condition\n- Prerequisite flag condition"),
+            percentageOptions: z.array(z.object({
+              percentage: z.number().int().describe("A number between 0 and 100 that represents a randomly allocated fraction of the users."),
+              value: z.object({
+                boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+                stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+                intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+                doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+                predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+              }).describe("Represents the value of a Feature Flag or Setting."),
+            })).nullable().optional().describe("The percentage options from where the evaluation process will choose a value based on the flag's percentage evaluation attribute."),
+            value: z.object({
+              boolValue: z.boolean().nullable().optional().describe("The served value in case of a boolean Feature Flag."),
+              stringValue: z.string().nullable().optional().describe("The served value in case of a text Setting."),
+              intValue: z.number().int().nullable().optional().describe("The served value in case of a whole number Setting."),
+              doubleValue: z.number().nullable().optional().describe("The served value in case of a decimal number Setting."),
+              predefinedVariationId: z.string().uuid().nullable().optional().describe("The served Variation's identifier."),
+            }).nullable().optional().describe("Represents the value of a Feature Flag or Setting."),
+          })).nullable().optional().describe("The targeting rules of the Feature Flag or Setting."),
+          percentageEvaluationAttribute: z.string().max(1000).nullable().optional().describe("The user attribute used for percentage evaluation. If not set, it defaults to the `Identifier` user object attribute."),
+          settingId: z.number().int().describe("The identifier of the feature flag or setting."),
+          latestVersionId: z.string().uuid().nullable().optional().describe("The version identifier of the last change made to the Feature Flag or Setting in the Environment. It can be used to make sure concurrent updates are not overwriting each other. If provided and the version identifier does not match the current version, the update will be rejected with a 409 Conflict response. The latest version id can be acquired from the `LastVersionId` property of the response models."),
+        }),
+      }),
+    },
+    method: "post",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/proposed-changes/{settingId}/resolve-conflicts",
+    executionParameters: [{"name":"changeRequestId","in":"path"},{"name":"settingId","in":"path"}],
+  }],
   ["update-member-permissions", {
     name: "update-member-permissions",
     description: `This endpoint updates the permissions of a Member identified by the \`userId\`. 
@@ -1896,6 +2265,29 @@ given Organization identified by the \`organizationId\` parameter.`,
     pathTemplate: "/v1/organizations/{organizationId}/members/{userId}",
     executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "userId", "in": "path" }],
   }],
+  ["update-change-request-comment", {
+    name: "update-change-request-comment",
+    description: `Updates an existing Change Request comment.`,
+    inputSchema: {
+      commentId: z.number().int().describe("The identifier of the Change Request comment."),
+      requestBody: z.object({
+        body: z.string().max(5000).describe("The updated comment body."),
+      }),
+    },
+    method: "put",
+    pathTemplate: "/v2/change-request-comments/{commentId}",
+    executionParameters: [{"name":"commentId","in":"path"}],
+  }],
+  ["delete-change-request-comment", {
+    name: "delete-change-request-comment",
+    description: `Deletes a Change Request comment.`,
+    inputSchema: {
+      commentId: z.number().int().describe("The identifier of the Change Request comment."),
+    },
+    method: "delete",
+    pathTemplate: "/v2/change-request-comments/{commentId}",
+    executionParameters: [{"name":"commentId","in":"path"}],
+  }],
   ["delete-invitation", {
     name: "delete-invitation",
     description: "This endpoint removes an Invitation identified by the `invitationId` parameter.",
@@ -1917,6 +2309,17 @@ given Product identified by the \`productId\` parameter.`,
     method: "delete",
     pathTemplate: "/v1/products/{productId}/members/{userId}",
     executionParameters: [{ "name": "productId", "in": "path" }, { "name": "userId", "in": "path" }],
+  }],
+  ["delete-change-request-proposed-change", {
+    name: "delete-change-request-proposed-change",
+    description: `Removes a setting from a Change Request.`,
+    inputSchema: {
+      changeRequestId: z.number().int().describe("The identifier of the Change Request."),
+      settingId: z.number().int().describe("The identifier of the Setting."),
+    },
+    method: "delete",
+    pathTemplate: "/v2/change-requests/{changeRequestId}/proposed-changes/{settingId}",
+    executionParameters: [{"name":"changeRequestId","in":"path"},{"name":"settingId","in":"path"}],
   }],
 ]);
 
