@@ -22,33 +22,33 @@ interface McpToolDefinition {
 const toolDefinitionMap = new Map<string, McpToolDefinition>([
   ["get-change-request", {
     name: "get-change-request",
-    description: `Returns the details of a specific Change Request.`,
+    description: "Returns the details of a specific Change Request.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
     },
     method: "get",
     pathTemplate: "/v2/change-requests/{changeRequestId}",
-    executionParameters: [{"name":"changeRequestId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }],
   }],
   ["update-change-request", {
     name: "update-change-request",
-    description: `Updates the metadata of a Change Request, such as title, note, schedule, etc.`,
+    description: "Updates the metadata of a Change Request, such as title, note, schedule, etc.",
     inputSchema: {
-      changeRequestId: z.number().int().describe("The identifier of the Change Request."), "requestBody": z.object({ "title": z.string().max(255).describe("The updated title of the Change Request."), "reason": z.union([z.string().max(1000).describe("The updated optional notes describing the purpose of the Change Request."), z.null().describe("The updated optional notes describing the purpose of the Change Request.")]).describe("The updated optional notes describing the purpose of the Change Request.").optional(), "applyAt": z.union([z.string().datetime({ offset: true }).describe("The updated optional UTC date and time when the Change Request should be applied automatically."), z.null().describe("The updated optional UTC date and time when the Change Request should be applied automatically.")]).describe("The updated optional UTC date and time when the Change Request should be applied automatically.").optional(), "bypassApproval": z.union([z.boolean().describe("The updated bypass-approval flag for scheduled changes."), z.null().describe("The updated bypass-approval flag for scheduled changes.")]).describe("The updated bypass-approval flag for scheduled changes.").optional() }).describe("The JSON request body.")
+      "changeRequestId": z.number().int().describe("The identifier of the Change Request."), "requestBody": z.object({ "title": z.string().max(255).describe("The updated title of the Change Request."), "reason": z.union([z.string().max(1000).describe("The updated optional notes describing the purpose of the Change Request."), z.null().describe("The updated optional notes describing the purpose of the Change Request.")]).describe("The updated optional notes describing the purpose of the Change Request.").optional(), "applyAt": z.union([z.string().datetime({ offset: true }).describe("The updated optional UTC date and time when the Change Request should be applied automatically."), z.null().describe("The updated optional UTC date and time when the Change Request should be applied automatically.")]).describe("The updated optional UTC date and time when the Change Request should be applied automatically.").optional(), "bypassApproval": z.union([z.boolean().describe("The updated bypass-approval flag for scheduled changes."), z.null().describe("The updated bypass-approval flag for scheduled changes.")]).describe("The updated bypass-approval flag for scheduled changes.").optional() }).describe("The JSON request body."),
     },
     method: "put",
     pathTemplate: "/v2/change-requests/{changeRequestId}",
-    executionParameters: [{"name":"changeRequestId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }],
   }],
   ["list-change-requests", {
     name: "list-change-requests",
-    description: `Returns Change Requests of a Product with optional filtering and pagination.`,
+    description: "Returns Change Requests of a Product with optional filtering and pagination.",
     inputSchema: {
-      "productId": z.string().uuid().describe("The identifier of the Product."), "configId": z.string().uuid().describe("Filter Change Requests by Config identifier.").optional(), "environmentId": z.string().uuid().describe("Filter Change Requests by Environment identifier.").optional(), "settingId": z.number().describe("Filter Change Requests by Setting identifier.").optional(), "changeRequestStatusFilter": z.array(z.enum(["open","applied","closed"]).describe("The lifecycle status of a Change Request.")).describe("Filter Change Requests by status values.").optional(), "scheduleFilter": z.enum(["nonScheduled","scheduled"]).describe("Filter Change Requests by schedule state.").optional(), "approveRequiredFilter": z.enum(["approveNotRequired","approveRequired"]).describe("Filter Change Requests by approval requirement.").optional(), "needsAttentionFilter": z.enum(["notNeedsAttention","needsAttention"]).describe("Filter Change Requests by whether they need attention.").optional(), "pageNumber": z.number().gte(1).lte(2147483647).describe("Page number (min: 1).").default(1), "pageSize": z.number().gte(1).lte(100).describe("Page size (min: 1, max: 100).").default(25)
+      "productId": z.string().uuid().describe("The identifier of the Product."), "configId": z.string().uuid().describe("Filter Change Requests by Config identifier.").optional(), "environmentId": z.string().uuid().describe("Filter Change Requests by Environment identifier.").optional(), "settingId": z.number().describe("Filter Change Requests by Setting identifier.").optional(), "changeRequestStatusFilter": z.array(z.enum(["open", "applied", "closed"]).describe("The lifecycle status of a Change Request.")).describe("Filter Change Requests by status values.").optional(), "scheduleFilter": z.enum(["nonScheduled", "scheduled"]).describe("Filter Change Requests by schedule state.").optional(), "approveRequiredFilter": z.enum(["approveNotRequired", "approveRequired"]).describe("Filter Change Requests by approval requirement.").optional(), "needsAttentionFilter": z.enum(["notNeedsAttention", "needsAttention"]).describe("Filter Change Requests by whether they need attention.").optional(), "pageNumber": z.number().gte(1).lte(2147483647).describe("Page number (min: 1).").default(1), "pageSize": z.number().gte(1).lte(100).describe("Page size (min: 1, max: 100).").default(25),
     },
     method: "get",
     pathTemplate: "/v2/products/{productId}/change-requests",
-    executionParameters: [{"name":"productId","in":"path"},{"name":"configId","in":"query"},{"name":"environmentId","in":"query"},{"name":"settingId","in":"query"},{"name":"changeRequestStatusFilter","in":"query"},{"name":"scheduleFilter","in":"query"},{"name":"approveRequiredFilter","in":"query"},{"name":"needsAttentionFilter","in":"query"},{"name":"pageNumber","in":"query"},{"name":"pageSize","in":"query"}],
+    executionParameters: [{ "name": "productId", "in": "path" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "settingId", "in": "query" }, { "name": "changeRequestStatusFilter", "in": "query" }, { "name": "scheduleFilter", "in": "query" }, { "name": "approveRequiredFilter", "in": "query" }, { "name": "needsAttentionFilter", "in": "query" }, { "name": "pageNumber", "in": "query" }, { "name": "pageSize", "in": "query" }],
   }],
   ["list-organizations", {
     name: "list-organizations",
@@ -352,7 +352,7 @@ identified by the \`configId\` parameter.
   }],
   ["list-auditlogs", {
     name: "list-auditlogs",
-    description: `This endpoint returns the list of Audit log items for a given Product and the result can be optionally filtered by Config and/or Environment.`,
+    description: "This endpoint returns the list of Audit log items for a given Product and the result can be optionally filtered by Config and/or Environment.",
     inputSchema: {
       productId: z.string().uuid().describe("The identifier of the Product."),
       configId: z.string().uuid().optional().describe("The identifier of the Config."),
@@ -396,7 +396,7 @@ identified by the \`configId\` parameter.
     },
     method: "get",
     pathTemplate: "/v2/products/{productId}/auditlogs",
-    executionParameters: [{"name":"productId","in":"path"},{"name":"configId","in":"query"},{"name":"environmentId","in":"query"},{"name":"auditLogType","in":"query"},{"name":"fromUtcDateTime","in":"query"},{"name":"toUtcDateTime","in":"query"},{"name":"pageNumber","in":"query"},{"name":"pageSize","in":"query"}],
+    executionParameters: [{ "name": "productId", "in": "path" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "auditLogType", "in": "query" }, { "name": "fromUtcDateTime", "in": "query" }, { "name": "toUtcDateTime", "in": "query" }, { "name": "pageNumber", "in": "query" }, { "name": "pageSize", "in": "query" }],
   }],
   ["list-staleflags", {
     name: "list-staleflags",
@@ -638,7 +638,7 @@ The Parameters dictionary differs for each IntegrationType:
   }],
   ["list-organization-auditlogs", {
     name: "list-organization-auditlogs",
-    description: `This endpoint returns the list of Audit log items for a given Organization and the result can be optionally filtered by Product and/or Config and/or Environment.`,
+    description: "This endpoint returns the list of Audit log items for a given Organization and the result can be optionally filtered by Product and/or Config and/or Environment.",
     inputSchema: {
       organizationId: z.string().uuid().describe("The identifier of the Organization."),
       productId: z.string().uuid().optional().describe("The identifier of the Product."),
@@ -683,7 +683,7 @@ The Parameters dictionary differs for each IntegrationType:
     },
     method: "get",
     pathTemplate: "/v2/organizations/{organizationId}/auditlogs",
-    executionParameters: [{"name":"organizationId","in":"path"},{"name":"productId","in":"query"},{"name":"configId","in":"query"},{"name":"environmentId","in":"query"},{"name":"auditLogType","in":"query"},{"name":"fromUtcDateTime","in":"query"},{"name":"toUtcDateTime","in":"query"},{"name":"pageNumber","in":"query"},{"name":"pageSize","in":"query"}],
+    executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "productId", "in": "query" }, { "name": "configId", "in": "query" }, { "name": "environmentId", "in": "query" }, { "name": "auditLogType", "in": "query" }, { "name": "fromUtcDateTime", "in": "query" }, { "name": "toUtcDateTime", "in": "query" }, { "name": "pageNumber", "in": "query" }, { "name": "pageSize", "in": "query" }],
   }],
   ["list-organization-members", {
     name: "list-organization-members",
@@ -844,18 +844,18 @@ identified by the \`productId\`.`,
   }],
   ["get-change-request-proposed-changes", {
     name: "get-change-request-proposed-changes",
-    description: `Returns the proposed changes to the Settings included in a Change Request.`,
+    description: "Returns the proposed changes to the Settings included in a Change Request.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
       settingId: z.number().int().optional().describe("The optional identifier of the Setting."),
     },
     method: "get",
     pathTemplate: "/v2/change-requests/{changeRequestId}/proposed-changes",
-    executionParameters: [{"name":"changeRequestId","in":"path"},{"name":"settingId","in":"query"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }, { "name": "settingId", "in": "query" }],
   }],
   ["update-change-request-proposed-changes", {
     name: "update-change-request-proposed-changes",
-    description: `Updates the proposed changes to the Settings included in a Change Request.`,
+    description: "Updates the proposed changes to the Settings included in a Change Request.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
       settingId: z.number().int().optional().describe("The optional identifier of the Setting."),
@@ -935,7 +935,7 @@ identified by the \`productId\`.`,
     },
     method: "put",
     pathTemplate: "/v2/change-requests/{changeRequestId}/proposed-changes",
-    executionParameters: [{"name":"changeRequestId","in":"path"},{"name":"settingId","in":"query"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }, { "name": "settingId", "in": "query" }],
   }],
   ["get-segment", {
     name: "get-segment",
@@ -1432,7 +1432,7 @@ So we get a response like this:
     },
     method: "put",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
-    executionParameters: [{"name":"environmentId","in":"path"},{"name":"settingId","in":"path"},{"name":"reason","in":"query"},{"name":"bypassApproval","in":"query"},{"name":"latestVersionId","in":"query"}],
+    executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }, { "name": "bypassApproval", "in": "query" }, { "name": "latestVersionId", "in": "query" }],
   }],
   ["update-setting-value-v2", {
     name: "update-setting-value-v2",
@@ -1526,7 +1526,7 @@ So we get a response like this:
     },
     method: "patch",
     pathTemplate: "/v2/environments/{environmentId}/settings/{settingId}/value",
-    executionParameters: [{"name":"environmentId","in":"path"},{"name":"settingId","in":"path"},{"name":"reason","in":"query"},{"name":"bypassApproval","in":"query"},{"name":"latestVersionId","in":"query"}],
+    executionParameters: [{ "name": "environmentId", "in": "path" }, { "name": "settingId", "in": "path" }, { "name": "reason", "in": "query" }, { "name": "bypassApproval", "in": "query" }, { "name": "latestVersionId", "in": "query" }],
   }],
   ["get-setting-values", {
     name: "get-setting-values",
@@ -1807,7 +1807,7 @@ So we get a response like this:
     },
     method: "post",
     pathTemplate: "/v2/configs/{configId}/environments/{environmentId}/values",
-    executionParameters: [{"name":"configId","in":"path"},{"name":"environmentId","in":"path"},{"name":"reason","in":"query"},{"name":"bypassApproval","in":"query"},{"name":"latestVersionId","in":"query"}],
+    executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }, { "name": "reason", "in": "query" }, { "name": "bypassApproval", "in": "query" }, { "name": "latestVersionId", "in": "query" }],
   }],
   ["get-tag", {
     name: "get-tag",
@@ -1969,7 +1969,7 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
   }],
   ["add-change-request-comment", {
     name: "add-change-request-comment",
-    description: `Adds a new comment to the Change Request.`,
+    description: "Adds a new comment to the Change Request.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
       requestBody: z.object({
@@ -1978,51 +1978,51 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
     },
     method: "post",
     pathTemplate: "/v2/change-requests/{changeRequestId}/comments",
-    executionParameters: [{"name":"changeRequestId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }],
   }],
   ["apply-change-request", {
     name: "apply-change-request",
-    description: `Applies the Change Request. The proposed changes will be applied and published immediately.`,
+    description: "Applies the Change Request. The proposed changes will be applied and published immediately.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
     },
     method: "post",
     pathTemplate: "/v2/change-requests/{changeRequestId}/apply",
-    executionParameters: [{"name":"changeRequestId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }],
   }],
   ["approve-change-request", {
     name: "approve-change-request",
-    description: `Adds your approval to the Change Request.`,
+    description: "Adds your approval to the Change Request.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
     },
     method: "post",
     pathTemplate: "/v2/change-requests/{changeRequestId}/approve",
-    executionParameters: [{"name":"changeRequestId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }],
   }],
   ["claim-change-request-ownership", {
     name: "claim-change-request-ownership",
-    description: `Claims ownership of the Change Request.`,
+    description: "Claims ownership of the Change Request.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
     },
     method: "post",
     pathTemplate: "/v2/change-requests/{changeRequestId}/claim-ownership",
-    executionParameters: [{"name":"changeRequestId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }],
   }],
   ["close-change-request", {
     name: "close-change-request",
-    description: `Closes the Change Request without applying it.`,
+    description: "Closes the Change Request without applying it.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
     },
     method: "post",
     pathTemplate: "/v2/change-requests/{changeRequestId}/close",
-    executionParameters: [{"name":"changeRequestId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }],
   }],
   ["create-change-request", {
     name: "create-change-request",
-    description: `Creates a new Change Request for the specified Config and Environment.`,
+    description: "Creates a new Change Request for the specified Config and Environment.",
     inputSchema: {
       configId: z.string().uuid().describe("The identifier of the Config."),
       environmentId: z.string().uuid().describe("The identifier of the Environment."),
@@ -2097,7 +2097,7 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
     },
     method: "post",
     pathTemplate: "/v2/configs/{configId}/environments/{environmentId}/change-requests",
-    executionParameters: [{"name":"configId","in":"path"},{"name":"environmentId","in":"path"}],
+    executionParameters: [{ "name": "configId", "in": "path" }, { "name": "environmentId", "in": "path" }],
   }],
   ["create-product", {
     name: "create-product",
@@ -2153,17 +2153,17 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
   }],
   ["remove-change-request-approval", {
     name: "remove-change-request-approval",
-    description: `Removes your existing approval from the Change Request.`,
+    description: "Removes your existing approval from the Change Request.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
     },
     method: "post",
     pathTemplate: "/v2/change-requests/{changeRequestId}/remove-approval",
-    executionParameters: [{"name":"changeRequestId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }],
   }],
   ["resolve-change-request-setting-conflicts", {
     name: "resolve-change-request-setting-conflicts",
-    description: `Updates the proposed changes to a Setting included in the Change Request to resolve conflicts caused by concurrently published changes.`,
+    description: "Updates the proposed changes to a Setting included in the Change Request to resolve conflicts caused by concurrently published changes.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
       settingId: z.number().int().describe("The identifier of the Setting."),
@@ -2232,7 +2232,7 @@ identified by the \`productId\` parameter, which can be obtained from the [List 
     },
     method: "post",
     pathTemplate: "/v2/change-requests/{changeRequestId}/proposed-changes/{settingId}/resolve-conflicts",
-    executionParameters: [{"name":"changeRequestId","in":"path"},{"name":"settingId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }, { "name": "settingId", "in": "path" }],
   }],
   ["update-member-permissions", {
     name: "update-member-permissions",
@@ -2267,7 +2267,7 @@ given Organization identified by the \`organizationId\` parameter.`,
   }],
   ["update-change-request-comment", {
     name: "update-change-request-comment",
-    description: `Updates an existing Change Request comment.`,
+    description: "Updates an existing Change Request comment.",
     inputSchema: {
       commentId: z.number().int().describe("The identifier of the Change Request comment."),
       requestBody: z.object({
@@ -2276,17 +2276,17 @@ given Organization identified by the \`organizationId\` parameter.`,
     },
     method: "put",
     pathTemplate: "/v2/change-request-comments/{commentId}",
-    executionParameters: [{"name":"commentId","in":"path"}],
+    executionParameters: [{ "name": "commentId", "in": "path" }],
   }],
   ["delete-change-request-comment", {
     name: "delete-change-request-comment",
-    description: `Deletes a Change Request comment.`,
+    description: "Deletes a Change Request comment.",
     inputSchema: {
       commentId: z.number().int().describe("The identifier of the Change Request comment."),
     },
     method: "delete",
     pathTemplate: "/v2/change-request-comments/{commentId}",
-    executionParameters: [{"name":"commentId","in":"path"}],
+    executionParameters: [{ "name": "commentId", "in": "path" }],
   }],
   ["delete-invitation", {
     name: "delete-invitation",
@@ -2312,14 +2312,14 @@ given Product identified by the \`productId\` parameter.`,
   }],
   ["delete-change-request-proposed-change", {
     name: "delete-change-request-proposed-change",
-    description: `Removes a setting from a Change Request.`,
+    description: "Removes a setting from a Change Request.",
     inputSchema: {
       changeRequestId: z.number().int().describe("The identifier of the Change Request."),
       settingId: z.number().int().describe("The identifier of the Setting."),
     },
     method: "delete",
     pathTemplate: "/v2/change-requests/{changeRequestId}/proposed-changes/{settingId}",
-    executionParameters: [{"name":"changeRequestId","in":"path"},{"name":"settingId","in":"path"}],
+    executionParameters: [{ "name": "changeRequestId", "in": "path" }, { "name": "settingId", "in": "path" }],
   }],
 ]);
 
