@@ -224,6 +224,25 @@ The instructions below shows how to connect a client to the MCP server.
 - `post-setting-values` - Update multiple setting values
 - V2 variants: `*-v2` versions of above tools for Config V2
 
+### Change Requests
+
+- `get-change-request` - Returns the details of a specific Change Request
+- `update-change-request` - Updates the metadata of a Change Request, such as title, note, schedule, etc.
+- `list-change-requests` - List Change Requests
+- `get-change-request-proposed-changes` - Returns the proposed changes to the Settings included in a Change Request
+- `update-change-request-proposed-change` - Updates the proposed changes to the Settings included in a Change Request
+- `add-change-request-comment` - Adds a new comment to the Change Request
+- `apply-change-request` - Applies the Change Request
+- `approve-change-request` - Adds your approval to the Change Request
+- `claim-change-request-ownership` - Claims ownership of the Change Request
+- `close-change-request` - Closes the Change Request without applying it
+- `create-change-request` - Creates a new Change Request for the specified Config and Environment
+- `remove-change-request-approval` - Removes your existing approval from the Change Request
+- `resolve-change-request-setting-conflicts` - Updates the proposed changes to a Setting included in the Change Request to resolve conflicts caused by concurrently published changes
+- `update-change-request-comment` - Updates an existing Change Request comment
+- `delete-change-request-comment` - Deletes a Change Request comment
+- `delete-change-request-proposed-change` - Removes a setting from a Change Request
+
 ### SDK documentation
 
 - `update-sdk-documentation` - Get comprehensive SDK documentation and code examples for seamless feature flag implementation in your project.
