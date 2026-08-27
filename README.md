@@ -22,7 +22,7 @@ You can use the following environment variables to configure the MCP server.
 | CONFIGCAT_BASE_URL   |          | https://api.configcat.com | ConfigCat Management API host. |
 
 
-The instructions below shows how to connect a client to the MCP server. 
+The instructions below show how to connect a client to the MCP server. 
 
 ### Cursor
 
