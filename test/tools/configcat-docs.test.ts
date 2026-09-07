@@ -56,12 +56,12 @@ describe("registerConfigCatDocsTools", () => {
 `;
 
     const http = {
-      fetch: vi.fn(async (url: string) => {
+      fetch: vi.fn((url: string) => {
         if (url === "https://configcat.com/docs/llms.txt") {
-          return new Response(llmsText, { status: 200 });
+          return Promise.resolve(new Response(llmsText, { status: 200 }));
         }
 
-        return new Response("JavaScript SDK docs content", { status: 200 });
+        return Promise.resolve(new Response("JavaScript SDK docs content", { status: 200 }));
       }),
     } as unknown as HttpClient;
 
@@ -92,12 +92,12 @@ describe("registerConfigCatDocsTools", () => {
 `;
 
     const http = {
-      fetch: vi.fn(async (url: string) => {
+      fetch: vi.fn((url: string) => {
         if (url === "https://configcat.com/docs/llms.txt") {
-          return new Response(llmsText, { status: 200 });
+          return Promise.resolve(new Response(llmsText, { status: 200 }));
         }
 
-        return new Response("should not be reached", { status: 200 });
+        return Promise.resolve(new Response("should not be reached", { status: 200 }));
       }),
     } as unknown as HttpClient;
 
@@ -127,12 +127,12 @@ describe("registerConfigCatDocsTools", () => {
 `;
 
     const http = {
-      fetch: vi.fn(async (url: string) => {
+      fetch: vi.fn((url: string) => {
         if (url === "https://configcat.com/docs/llms.txt") {
-          return new Response(llmsText, { status: 200 });
+          return Promise.resolve(new Response(llmsText, { status: 200 }));
         }
 
-        return new Response("should not be reached", { status: 200 });
+        return Promise.resolve(new Response("should not be reached", { status: 200 }));
       }),
     } as unknown as HttpClient;
 
@@ -162,12 +162,12 @@ describe("registerConfigCatDocsTools", () => {
 `;
 
     const http = {
-      fetch: vi.fn(async (url: string) => {
+      fetch: vi.fn((url: string) => {
         if (url === "https://configcat.com/docs/llms.txt") {
-          return new Response(llmsText, { status: 200 });
+          return Promise.resolve(new Response(llmsText, { status: 200 }));
         }
 
-        return new Response("should not be reached", { status: 200 });
+        return Promise.resolve(new Response("should not be reached", { status: 200 }));
       }),
     } as unknown as HttpClient;
 
