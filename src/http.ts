@@ -64,12 +64,13 @@ export class HttpClient {
   }
 
   // Simple fetch with User-Agent header
-  async fetch(url: string): Promise<Response> {
+  async fetch(url: string, init: RequestInit = {}): Promise<Response> {
+    const headers = new Headers(init.headers);
+    headers.set("User-Agent", this.userAgent);
+
     return await fetch(url, {
-      redirect: "follow",
-      headers: {
-        "User-Agent": this.userAgent,
-      },
+      ...init,
+      headers,
     });
   }
 }

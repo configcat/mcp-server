@@ -45,4 +45,146 @@ describe("registerConfigCatDocsTools", () => {
     // Validate the downloaded page is actually JavaScript SDK documentation
     expect(result.content[0].text.toLowerCase()).toContain("javascript");
   }, 30_000);
+
+  it("accepts trusted SDK docs URL", async () => {
+    const llmsText = `
+# ConfigCat docs
+
+## SDK Reference
+- [JavaScript SDK](https://configcat.com/docs/sdk-reference/js/overview.md)
+- [Node.js SDK](https://configcat.com/docs/sdk-reference/js/node.md)
+`;
+
+    const http = {
+      fetch: vi.fn((url: string) => {
+        if (url === "https://configcat.com/docs/llms.txt") {
+          return Promise.resolve(new Response(llmsText, { status: 200 }));
+        }
+
+        return Promise.resolve(new Response("JavaScript SDK docs content", { status: 200 }));
+      }),
+    } as unknown as HttpClient;
+
+    let callback: RegisterToolCallback | undefined;
+    const server = {
+      registerTool: vi.fn((_name: string, _config: { description: string }, cb: RegisterToolCallback) => {
+        callback = cb;
+      }),
+    };
+
+    await registerConfigCatDocsTools(server as never, http);
+
+    const result = await callback!({
+      url: "https://configcat.com/docs/sdk-reference/js/overview.md",
+    });
+
+    expect(result.isError).toBeUndefined();
+    expect(result.content[0].type).toBe("text");
+    expect(result.content[0].text).toContain("JavaScript SDK docs content");
+  });
+
+  it("rejects a URL whose path is allowed in llms.txt but whose host is different", async () => {
+    const llmsText = `
+# ConfigCat docs
+
+## SDK Reference
+- [JavaScript SDK](https://configcat.com/docs/sdk-reference/js/overview.md)
+`;
+
+    const http = {
+      fetch: vi.fn((url: string) => {
+        if (url === "https://configcat.com/docs/llms.txt") {
+          return Promise.resolve(new Response(llmsText, { status: 200 }));
+        }
+
+        return Promise.resolve(new Response("should not be reached", { status: 200 }));
+      }),
+    } as unknown as HttpClient;
+
+    let callback: RegisterToolCallback | undefined;
+    const server = {
+      registerTool: vi.fn((_name: string, _config: { description: string }, cb: RegisterToolCallback) => {
+        callback = cb;
+      }),
+    };
+
+    await registerConfigCatDocsTools(server as never, http);
+
+    const result = await callback!({
+      url: "https://evil.example/docs/sdk-reference/js/overview.md",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Only configcat.com host is allowed");
+  });
+
+  it("rejects URLs on a trusted domain when the exact URL is missing from llms.txt", async () => {
+    const llmsText = `
+# ConfigCat docs
+
+## SDK Reference
+- [JavaScript SDK](https://configcat.com/docs/sdk-reference/js/overview.md)
+`;
+
+    const http = {
+      fetch: vi.fn((url: string) => {
+        if (url === "https://configcat.com/docs/llms.txt") {
+          return Promise.resolve(new Response(llmsText, { status: 200 }));
+        }
+
+        return Promise.resolve(new Response("should not be reached", { status: 200 }));
+      }),
+    } as unknown as HttpClient;
+
+    let callback: RegisterToolCallback | undefined;
+    const server = {
+      registerTool: vi.fn((_name: string, _config: { description: string }, cb: RegisterToolCallback) => {
+        callback = cb;
+      }),
+    };
+
+    await registerConfigCatDocsTools(server as never, http);
+
+    const result = await callback!({
+      url: "https://configcat.com/docs/sdk-reference/js/node.md",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("URL is not in the trusted SDK documentation list");
+  });
+
+  it("rejects non-HTTPS SDK documentation URLs", async () => {
+    const llmsText = `
+# ConfigCat docs
+
+## SDK Reference
+- [JavaScript SDK](https://configcat.com/docs/sdk-reference/js/overview.md)
+`;
+
+    const http = {
+      fetch: vi.fn((url: string) => {
+        if (url === "https://configcat.com/docs/llms.txt") {
+          return Promise.resolve(new Response(llmsText, { status: 200 }));
+        }
+
+        return Promise.resolve(new Response("should not be reached", { status: 200 }));
+      }),
+    } as unknown as HttpClient;
+
+    let callback: RegisterToolCallback | undefined;
+    const server = {
+      registerTool: vi.fn((_name: string, _config: { description: string }, cb: RegisterToolCallback) => {
+        callback = cb;
+      }),
+    };
+
+    await registerConfigCatDocsTools(server as never, http);
+
+    const result = await callback!({
+      url: "http://configcat.com/docs/sdk-reference/js/overview.md",
+    });
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Only HTTPS URLs are allowed");
+  });
 });
