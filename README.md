@@ -21,6 +21,40 @@ You can use the following environment variables to configure the MCP server.
 | CONFIGCAT_API_PASS   | &#9745;  |         | [ConfigCat Management API basic authentication password](https://app.configcat.com/my-account/public-api-credentials). |
 | CONFIGCAT_BASE_URL   |          | https://api.configcat.com | ConfigCat Management API host. |
 
+### Runtime modes
+
+The server supports two transport modes:
+
+- `mcp-server` or `mcp-server stdio`: local stdio mode (default, backwards-compatible).
+- `mcp-server http`: remote Streamable HTTP mode.
+
+### HTTP mode configuration
+
+When running in HTTP mode, set these environment variables:
+
+| Environment variable | Required | Default | Description |
+| -------------------- | -------- | ------- | ----------- |
+| MCP_HTTP_HOST |          | 127.0.0.1 | Host interface used by the HTTP server. |
+| MCP_HTTP_PORT |          | 3000 | Port used by the HTTP server. |
+| MCP_HTTP_PATH |          | /mcp | MCP endpoint path. |
+| MCP_HTTP_ALLOWED_HOSTS |          |         | Optional comma-separated hostnames for host header validation. |
+| MCP_HTTP_PUBLIC_BASE_URL |          | http://MCP_HTTP_HOST:MCP_HTTP_PORT | Public base URL used for OAuth resource metadata. |
+
+HTTP mode uses MCP Streamable HTTP transport and enforces OAuth 2.1 Bearer authentication.
+
+| Environment variable | Required | Default | Description |
+| -------------------- | -------- | ------- | ----------- |
+| MCP_OAUTH_ISSUER | &#9745; | | OAuth authorization server issuer URL. |
+| MCP_OAUTH_AUTHORIZATION_ENDPOINT | &#9745; | | OAuth authorization endpoint URL. |
+| MCP_OAUTH_TOKEN_ENDPOINT | &#9745; | | OAuth token endpoint URL. |
+| MCP_OAUTH_INTROSPECTION_ENDPOINT | &#9745; | | OAuth token introspection endpoint URL. |
+| MCP_OAUTH_REGISTRATION_ENDPOINT | | | Optional OAuth dynamic client registration endpoint URL. |
+| MCP_OAUTH_SCOPES | | | Optional comma-separated scopes supported by this MCP resource server. |
+| MCP_OAUTH_REQUIRED_SCOPES | | | Optional comma-separated scopes that every Bearer token must include. |
+| MCP_OAUTH_ENFORCE_RESOURCE | | true | Set to `false` to disable RFC 8707 audience/resource matching enforcement. |
+| MCP_OAUTH_INTROSPECTION_CLIENT_ID | | | Optional client ID sent to introspection endpoint. |
+| MCP_OAUTH_INTROSPECTION_CLIENT_SECRET | | | Optional client secret sent to introspection endpoint. |
+
 
 The instructions below show how to connect a client to the MCP server. 
 
