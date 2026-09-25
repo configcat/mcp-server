@@ -7,6 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { checkResourceAllowed } from "@modelcontextprotocol/sdk/shared/auth-utils.js";
+import { InvalidTokenError } from '@modelcontextprotocol/sdk/server/auth/errors.js';
 import type { OAuthMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Request, Response } from "express";
@@ -119,7 +120,7 @@ function runHttp(): void {
           : (data.clientId ?? "unknown-client");
 
         if (data.active !== true) {
-          throw new Error("Token is inactive.");
+          throw new InvalidTokenError("Token is inactive.");
         }
 
         const audiences = Array.isArray(data.aud)
@@ -128,7 +129,7 @@ function runHttp(): void {
 
         if (oauthConfig.resourceEnforcement) {
           if (audiences.length === 0) {
-            throw new Error("Resource indicator is missing from token introspection response.");
+            throw new InvalidTokenError("Resource indicator is missing from token introspection response.");
           }
 
           const matches = audiences.some(aud => checkResourceAllowed({
@@ -137,7 +138,7 @@ function runHttp(): void {
           }));
 
           if (!matches) {
-            throw new Error(`Token resource does not match ${httpConfig.endpointUrl.toString()}.`);
+            throw new InvalidTokenError(`Token resource does not match ${httpConfig.endpointUrl.toString()}.`);
           }
         }
 
