@@ -123,31 +123,11 @@ function runHttp(): void {
           throw new InvalidTokenError("Token is inactive.");
         }
 
-        const audiences = Array.isArray(data.aud)
-          ? data.aud
-          : (typeof data.aud === "string" && data.aud ? [data.aud] : []);
-
-        if (oauthConfig.resourceEnforcement) {
-          if (audiences.length === 0) {
-            throw new InvalidTokenError("Resource indicator is missing from token introspection response.");
-          }
-
-          const matches = audiences.some(aud => checkResourceAllowed({
-            requestedResource: aud,
-            configuredResource: httpConfig.endpointUrl,
-          }));
-
-          if (!matches) {
-            throw new InvalidTokenError(`Token resource does not match ${httpConfig.endpointUrl.toString()}.`);
-          }
-        }
-
         return {
           token,
           clientId: tokenClientId,
           scopes: data.scope ? data.scope.split(/\s+/).filter(Boolean) : [],
           expiresAt: data.exp,
-          ...(audiences[0] ? { resource: new URL(audiences[0]) } : {}),
         };
       },
     },
