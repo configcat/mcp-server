@@ -56,6 +56,15 @@ HTTP mode uses MCP Streamable HTTP transport and enforces OAuth 2.1 Bearer authe
 | MCP_OAUTH_INTROSPECTION_CLIENT_SECRET | | | Optional client secret sent to introspection endpoint. |
 
 
+### Docker
+
+The repository ships a `Dockerfile` for hosting the server in HTTP mode. Inside the container the server listens on `0.0.0.0:3000` by default.
+
+```bash
+docker build -t configcat/mcp-server .
+docker run -d -p 3000:3000 --env-file .env configcat/mcp-server
+```
+
 The instructions below show how to connect a client to the MCP server. 
 
 ### Cursor
