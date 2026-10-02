@@ -108,6 +108,7 @@ function runHttp(): void {
 
         if (!response.ok) {
           const text = await response.text().catch(() => "");
+          console.error(`OAuth token introspection failed: HTTP ${response.status} ${response.statusText} ${text}`);
           throw new Error(`OAuth token introspection failed: HTTP ${response.status} ${response.statusText} ${text}`);
         }
 
@@ -125,6 +126,7 @@ function runHttp(): void {
           : (data.clientId ?? "unknown-client");
 
         if (data.active !== true) {
+          console.error("Token is inactive.");
           throw new InvalidTokenError("Token is inactive.");
         }
 
@@ -209,12 +211,14 @@ function runHttp(): void {
     const parsedBody = req.body as unknown;
 
     if (!sessionIdHeader) {
+      console.error("Missing MCP session ID.");
       res.status(400).send("Missing MCP session ID.");
       return;
     }
 
     const existing = sessions.get(sessionIdHeader);
     if (!existing) {
+      console.error(`Session not found for MCP session ID: ${sessionIdHeader}`);
       res.status(404).send("Session not found.");
       return;
     }
