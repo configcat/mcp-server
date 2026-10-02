@@ -75,6 +75,11 @@ function runHttp(): void {
     allowedHosts: httpConfig.allowedHosts,
   });
 
+  // Unauthenticated health check for load balancers. It reports that this process is up.
+  app.get("/health", (_req: Request, res: Response) => {
+    res.status(200).json({ status: "ok" });
+  });
+
   app.use(mcpAuthMetadataRouter({
     oauthMetadata,
     resourceServerUrl: httpConfig.endpointUrl,
