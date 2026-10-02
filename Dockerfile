@@ -15,9 +15,10 @@ FROM node:${NODE_VERSION}-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV MCP_HTTP_HOST=0.0.0.0
+ENV MCP_HTTP_HOST=127.0.0.1
 ENV MCP_HTTP_PORT=3000
 ENV MCP_HTTP_PATH=/mcp
+ENV MCP_HTTP_ALLOWED_HOSTS=localhost,127.0.0.1
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
