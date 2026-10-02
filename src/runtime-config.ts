@@ -117,16 +117,17 @@ export function getHttpServerConfig(env: NodeJS.ProcessEnv): HttpServerConfig {
 }
 
 export function getOAuthServerConfig(env: NodeJS.ProcessEnv): OAuthServerConfig {
-  const scopes = parseCsv(env.MCP_OAUTH_SCOPES);
+  const scopes = parseCsv(env.MCP_OAUTH_SCOPES ?? "public_api,offline_access,openid");
   const requiredScopes = parseCsv(env.MCP_OAUTH_REQUIRED_SCOPES);
-  const resourceEnforcement = !isFalse(env.MCP_OAUTH_ENFORCE_RESOURCE);
-  const introspectionEndpoint = getRequiredEnv("MCP_OAUTH_INTROSPECTION_ENDPOINT", env);
+  const issuer = getRequiredEnv("MCP_OAUTH_ISSUER", env);
+  const resourceEnforcement = !isFalse(env.MCP_OAUTH_ENFORCE_RESOURCE ?? "true");
+  const introspectionEndpoint = `${issuer}/oauth/introspect`;
 
   const config: OAuthServerConfig = {
     metadata: {
-      issuer: getRequiredEnv("MCP_OAUTH_ISSUER", env),
-      authorizationEndpoint: getRequiredEnv("MCP_OAUTH_AUTHORIZATION_ENDPOINT", env),
-      tokenEndpoint: getRequiredEnv("MCP_OAUTH_TOKEN_ENDPOINT", env),
+      issuer: issuer,
+      authorizationEndpoint: `${issuer}/oauth/authorize`,
+      tokenEndpoint: `${issuer}/oauth/token`,
       introspectionEndpoint,
       responseTypesSupported: ["code"],
       grantTypesSupported: ["authorization_code", "refresh_token"],
@@ -145,10 +146,7 @@ export function getOAuthServerConfig(env: NodeJS.ProcessEnv): OAuthServerConfig 
     config.metadata.registrationEndpoint = registrationEndpoint;
   }
 
-  const clientId = getOptionalEnv("MCP_OAUTH_INTROSPECTION_CLIENT_ID", env);
-  if (clientId) {
-    config.introspection.clientId = clientId;
-  }
+  config.introspection.clientId = getOptionalEnv("MCP_OAUTH_INTROSPECTION_CLIENT_ID", env) ?? "configcat-mcp-server";
 
   const clientSecret = getOptionalEnv("MCP_OAUTH_INTROSPECTION_CLIENT_SECRET", env);
   if (clientSecret) {
