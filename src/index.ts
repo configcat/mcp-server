@@ -73,6 +73,8 @@ function runHttp(): void {
     host: httpConfig.host,
     allowedHosts: httpConfig.allowedHosts,
   });
+  // Disable the "X-Powered-By" header for security reasons.
+  app.disable("x-powered-by");
 
   // Unauthenticated health check for load balancers. It reports that this process is up.
   app.get("/health", (_req: Request, res: Response) => {
