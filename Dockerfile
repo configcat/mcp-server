@@ -12,6 +12,7 @@ RUN npm run build
 
 
 FROM node:${NODE_VERSION}-alpine AS runtime
+RUN apk add --no-cache curl
 WORKDIR /app
 
 ENV NODE_ENV=production
