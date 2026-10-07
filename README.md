@@ -45,16 +45,10 @@ HTTP mode uses MCP Streamable HTTP transport and enforces OAuth 2.1 Bearer authe
 | Environment variable | Required | Default | Description |
 | -------------------- | -------- | ------- | ----------- |
 | MCP_OAUTH_ISSUER | &#9745; | | OAuth authorization server issuer URL. |
-| MCP_OAUTH_AUTHORIZATION_ENDPOINT | &#9745; | | OAuth authorization endpoint URL. |
-| MCP_OAUTH_TOKEN_ENDPOINT | &#9745; | | OAuth token endpoint URL. |
-| MCP_OAUTH_INTROSPECTION_ENDPOINT | &#9745; | | OAuth token introspection endpoint URL. |
-| MCP_OAUTH_REGISTRATION_ENDPOINT | | | Optional OAuth dynamic client registration endpoint URL. |
 | MCP_OAUTH_SCOPES | | | Optional comma-separated scopes supported by this MCP resource server. |
-| MCP_OAUTH_REQUIRED_SCOPES | | | Optional comma-separated scopes that every Bearer token must include. |
-| MCP_OAUTH_ENFORCE_RESOURCE | | true | Set to `false` to disable RFC 8707 audience/resource matching enforcement. |
-| MCP_OAUTH_INTROSPECTION_CLIENT_ID | | | Optional client ID sent to introspection endpoint. |
-| MCP_OAUTH_INTROSPECTION_CLIENT_SECRET | | | Optional client secret sent to introspection endpoint. |
-
+| MCP_OAUTH_REQUIRED_SCOPES | | | Comma-separated scopes that every Bearer token must include. |
+| MCP_OAUTH_INTROSPECTION_CLIENT_ID | &#9745; | | Confidential resource-server client ID used to authenticate introspection, not the individual MCP client's ID. |
+| MCP_OAUTH_INTROSPECTION_CLIENT_SECRET | &#9745; | | Secret for the confidential introspection client. |
 
 ### Docker
 

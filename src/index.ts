@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { InvalidTokenError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
 import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
 import { getOAuthProtectedResourceMetadataUrl, mcpAuthMetadataRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
@@ -11,6 +10,7 @@ import type { OAuthMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import type { Request, Response } from "express";
 import { randomUUID } from "node:crypto";
+import { getSessionIdentity, verifyAccessToken } from "./helpers/token-verification.js";
 import { HttpClient } from "./http.js";
 import { getHttpServerConfig, getOAuthServerConfig, resolveServerMode } from "./runtime-config.js";
 import { registerConfigCatAPITools } from "./tools/configcat-api.js";
@@ -24,6 +24,7 @@ const http = new HttpClient(`${serverName}/${serverVersion}`);
 type SessionContext = {
   server: McpServer;
   transport: StreamableHTTPServerTransport;
+  identity: string;
 };
 
 async function createServer(): Promise<McpServer> {
@@ -90,54 +91,7 @@ function runHttp(): void {
 
   const authMiddleware = requireBearerAuth({
     verifier: {
-      verifyAccessToken: async (token: string) => {
-        const body = new URLSearchParams({ token });
-        if (oauthConfig.introspection.clientId) {
-          body.set("client_id", oauthConfig.introspection.clientId);
-        }
-        if (oauthConfig.introspection.clientSecret) {
-          body.set("client_secret", oauthConfig.introspection.clientSecret);
-        }
-
-        const response = await fetch(oauthConfig.introspection.endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: body.toString(),
-        });
-
-        if (!response.ok) {
-          const text = await response.text().catch(() => "");
-          console.error(`OAuth token introspection failed: HTTP ${response.status} ${response.statusText} ${text}`);
-          throw new Error(`OAuth token introspection failed: HTTP ${response.status} ${response.statusText} ${text}`);
-        }
-
-        const data = await response.json() as {
-          active?: boolean;
-          clientId?: string;
-          scope?: string;
-          exp?: number;
-          aud?: string | string[];
-          [key: string]: unknown;
-        };
-
-        const tokenClientId = typeof data["client_id"] === "string"
-          ? data["client_id"]
-          : (data.clientId ?? "unknown-client");
-
-        if (data.active !== true) {
-          console.error("Token is inactive.");
-          throw new InvalidTokenError("Token is inactive.");
-        }
-
-        return {
-          token,
-          clientId: tokenClientId,
-          scopes: data.scope ? data.scope.split(/\s+/).filter(Boolean) : [],
-          expiresAt: data.exp,
-        };
-      },
+      verifyAccessToken: token => verifyAccessToken(token, oauthConfig, httpConfig.endpointUrl),
     },
     requiredScopes: oauthConfig.requiredScopes,
     resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(httpConfig.endpointUrl),
@@ -152,7 +106,7 @@ function runHttp(): void {
 
       if (sessionIdHeader) {
         const existing = sessions.get(sessionIdHeader);
-        if (!existing) {
+        if (!existing || existing.identity !== getSessionIdentity(req.auth)) {
           res.status(404).send("Session not found.");
           return;
         }
@@ -173,11 +127,17 @@ function runHttp(): void {
         return;
       }
 
+      const identity = getSessionIdentity(req.auth);
+      if (!identity) {
+        res.status(401).send("Missing authenticated session identity.");
+        return;
+      }
+
       const server = await createServer();
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => randomUUID(),
         onsessioninitialized: sessionId => {
-          sessions.set(sessionId, { server, transport });
+          sessions.set(sessionId, { server, transport, identity });
         },
       });
 
@@ -218,8 +178,7 @@ function runHttp(): void {
     }
 
     const existing = sessions.get(sessionIdHeader);
-    if (!existing) {
-      console.error(`Session not found for MCP session ID: ${sessionIdHeader}`);
+    if (!existing || existing.identity !== getSessionIdentity(req.auth)) {
       res.status(404).send("Session not found.");
       return;
     }
