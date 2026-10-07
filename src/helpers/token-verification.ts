@@ -42,37 +42,46 @@ export async function verifyAccessToken(
       redirect: "error",
     });
     if (!response.ok) {
+      console.error(`OAuth token introspection failed: HTTP ${response.status}`);
       throw new ServerError(`OAuth token introspection failed: HTTP ${response.status}`);
     }
     payload = await response.json();
   } catch {
+    console.error("OAuth token introspection is unavailable.");
     throw new ServerError("OAuth token introspection is unavailable.");
   }
 
   const status = z.object({ active: z.boolean() }).safeParse(payload);
   if (!status.success) {
+    console.error("Invalid OAuth token introspection response.");
     throw new ServerError("Invalid OAuth token introspection response.");
   }
   if (!status.data.active) {
+    console.error("Token is inactive.");
     throw new InvalidTokenError("Token is inactive.");
   }
 
   const result = introspectionSchema.safeParse(payload);
   if (!result.success) {
+    console.error("Invalid OAuth token introspection response.");
     throw new ServerError("Invalid OAuth token introspection response.");
   }
   const data = result.data;
   const audiences = typeof data.aud === "string" ? [data.aud] : data.aud;
   if (!audiences.includes(resource.href)) {
+    console.error("Token is not intended for this MCP server.");
     throw new InvalidTokenError("Token is not intended for this MCP server.");
   }
   if (data.iss !== config.metadata.issuer) {
+    console.error("Unexpected token issuer.");
     throw new InvalidTokenError("Unexpected token issuer.");
   }
   if (data.token_usage !== "access_token" || data.token_type !== "Bearer") {
+    console.error("A Bearer access token is required.");
     throw new InvalidTokenError("A Bearer access token is required.");
   }
   if (typeof data.nbf === "number" && data.nbf > Date.now() / 1000) {
+    console.error("Token is not yet valid.");
     throw new InvalidTokenError("Token is not yet valid.");
   }
 
