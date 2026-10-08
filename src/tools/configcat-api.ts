@@ -1846,14 +1846,14 @@ identified by the \`tagId\`.`,
   }],
   ["get-organization-usage-and-quota", {
     name: "get-organization-usage-and-quota",
-    description: `This endpoint returns the current usage and quota information for an Organization. You can optionally filter the result by Product using the \`productId\` query parameter. The response includes monthly aggregate values, detailed request statistics, and quota limits used to monitor consumption and over-limit conditions.`,
+    description: "This endpoint returns the current usage and quota information for an Organization. You can optionally filter the result by Product using the `productId` query parameter. The response includes monthly aggregate values, detailed request statistics, and quota limits used to monitor consumption and over-limit conditions.",
     inputSchema: {
       "organizationId": z.string().uuid().describe("The identifier of the Organization."),
-      "productId": z.string().uuid().describe("The identifier of the Product to filter statistics for.").optional()
+      "productId": z.string().uuid().describe("The identifier of the Product to filter statistics for.").optional(),
     },
     method: "get",
     pathTemplate: "/v1/organizations/{organizationId}/usage-and-quota",
-    executionParameters: [{"name":"organizationId","in":"path"},{"name":"productId","in":"query"}],
+    executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "productId", "in": "query" }],
   }],
   ["get-webhook", {
     name: "get-webhook",
