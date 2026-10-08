@@ -34,7 +34,7 @@ const toolDefinitionMap = new Map<string, McpToolDefinition>([
     name: "update-change-request",
     description: "Updates the metadata of a Change Request, such as title, note, schedule, etc.",
     inputSchema: {
-      "changeRequestId": z.number().int().describe("The identifier of the Change Request."), "requestBody": z.object({ "title": z.string().max(255).describe("The updated title of the Change Request."), "reason": z.union([z.string().max(1000).describe("The updated optional notes describing the purpose of the Change Request."), z.null().describe("The updated optional notes describing the purpose of the Change Request.")]).describe("The updated optional notes describing the purpose of the Change Request.").optional(), "applyAt": z.union([z.string().datetime({ offset: true }).describe("The updated optional UTC date and time when the Change Request should be applied automatically."), z.null().describe("The updated optional UTC date and time when the Change Request should be applied automatically.")]).describe("The updated optional UTC date and time when the Change Request should be applied automatically.").optional(), "bypassApproval": z.union([z.boolean().describe("The updated bypass-approval flag for scheduled changes."), z.null().describe("The updated bypass-approval flag for scheduled changes.")]).describe("The updated bypass-approval flag for scheduled changes.").optional() }).describe("The JSON request body."),
+      "changeRequestId": z.number().int().describe("The identifier of the Change Request."), "requestBody": z.object({ "title": z.string().max(255).describe("The updated title of the Change Request."), "reason": z.union([z.string().max(1000).describe("The updated optional notes describing the purpose of the Change Request."), z.null().describe("The updated optional notes describing the purpose of the Change Request.")]).describe("The updated optional notes describing the purpose of the Change Request.").optional(), "applyAt": z.union([z.string().datetime({ offset: true }).describe("The updated optional UTC date and time when the Change Request should be applied automatically."), z.null().describe("The updated optional UTC date and time when the Change Request should be applied automatically.")]).describe("The updated optional UTC date and time when the Change Request should be applied automatically.").optional(), "bypassApproval": z.union([z.boolean().describe("The updated bypass-approval flag for scheduled changes."), z.null().describe("The updated bypass-approval flag for scheduled changes.")]).describe("The updated bypass-approval flag for scheduled changes.").optional(), "sendNotificationsToApprovers": z.union([z.boolean().describe("The updated flag for whether email notifications should be sent to team members with approval permission about this Change Request."), z.null().describe("The updated flag for whether email notifications should be sent to team members with approval permission about this Change Request.")]).describe("The updated flag for whether email notifications should be sent to team members with approval permission about this Change Request.").optional() }).describe("The JSON request body."),
     },
     method: "put",
     pathTemplate: "/v2/change-requests/{changeRequestId}",
@@ -1844,6 +1844,17 @@ identified by the \`tagId\`.`,
     pathTemplate: "/v1/tags/{tagId}",
     executionParameters: [{ "name": "tagId", "in": "path" }],
   }],
+  ["get-organization-usage-and-quota", {
+    name: "get-organization-usage-and-quota",
+    description: `This endpoint returns the current usage and quota information for an Organization. You can optionally filter the result by Product using the \`productId\` query parameter. The response includes monthly aggregate values, detailed request statistics, and quota limits used to monitor consumption and over-limit conditions.`,
+    inputSchema: {
+      "organizationId": z.string().uuid().describe("The identifier of the Organization."),
+      "productId": z.string().uuid().describe("The identifier of the Product to filter statistics for.").optional()
+    },
+    method: "get",
+    pathTemplate: "/v1/organizations/{organizationId}/usage-and-quota",
+    executionParameters: [{"name":"organizationId","in":"path"},{"name":"productId","in":"query"}],
+  }],
   ["get-webhook", {
     name: "get-webhook",
     description: `This endpoint returns the metadata of a Webhook 
@@ -2031,6 +2042,7 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
         reason: z.string().max(1000).nullable().optional().describe("The optional notes describing the purpose of the Change Request. This will appear in the Audit Log (in the Notes section when you expand the corresponding entry) upon applying the change request."),
         applyAt: z.string().datetime().nullable().optional().describe("The optional UTC date and time when the scheduled Change Request should be applied automatically."),
         bypassApproval: z.boolean().optional().describe("When true, bypasses required approval checks for scheduled changes."),
+        sendNotificationsToApprovers: z.boolean().optional().describe("When true, email notifications are sent to team members with approval permission about this Change Request."),
         proposedChanges: z.array(z.object({
           proposedChange: z.object({
             defaultValue: z.object({
