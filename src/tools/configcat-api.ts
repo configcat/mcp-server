@@ -1845,6 +1845,17 @@ identified by the \`tagId\`.`,
     pathTemplate: "/v1/tags/{tagId}",
     executionParameters: [{ "name": "tagId", "in": "path" }],
   }],
+  ["get-organization-usage-and-quota", {
+    name: "get-organization-usage-and-quota",
+    description: "This endpoint returns the current usage and quota information for an Organization. You can optionally filter the result by Product using the `productId` query parameter. The response includes monthly aggregate values, detailed request statistics, and quota limits used to monitor consumption and over-limit conditions.",
+    inputSchema: {
+      "organizationId": z.string().uuid().describe("The identifier of the Organization."),
+      "productId": z.string().uuid().describe("The identifier of the Product to filter statistics for.").optional(),
+    },
+    method: "get",
+    pathTemplate: "/v1/organizations/{organizationId}/usage-and-quota",
+    executionParameters: [{ "name": "organizationId", "in": "path" }, { "name": "productId", "in": "query" }],
+  }],
   ["get-webhook", {
     name: "get-webhook",
     description: `This endpoint returns the metadata of a Webhook 
@@ -2032,6 +2043,7 @@ Signing keys are used for ensuring the Webhook requests you receive are actually
         reason: z.string().max(1000).nullable().optional().describe("The optional notes describing the purpose of the Change Request. This will appear in the Audit Log (in the Notes section when you expand the corresponding entry) upon applying the change request."),
         applyAt: z.string().datetime().nullable().optional().describe("The optional UTC date and time when the scheduled Change Request should be applied automatically."),
         bypassApproval: z.boolean().optional().describe("When true, bypasses required approval checks for scheduled changes."),
+        sendNotificationsToApprovers: z.boolean().optional().describe("When true, email notifications are sent to team members with approval permission about this Change Request."),
         proposedChanges: z.array(z.object({
           proposedChange: z.object({
             defaultValue: z.object({

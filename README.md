@@ -230,6 +230,10 @@ The instructions below show how to connect a client to the MCP server.
 
 - `list-staleflags` - Get stale feature flags report
 
+#### Usage & Quota
+
+- `get-organization-usage-and-quota` - Get the current usage and quota information for an Organization
+
 ### Feature Flag metadata
 
 #### Feature Flags & Settings
