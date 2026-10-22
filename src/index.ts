@@ -19,7 +19,9 @@ import { registerConfigCatDocsTools } from "./tools/configcat-docs.js";
 const serverName = "ConfigCat MCP";
 const serverVersion = "0.1.11";
 
-const http = new HttpClient(`${serverName}/${serverVersion}`);
+const serverMode = resolveServerMode(process.argv);
+
+const http = new HttpClient(`${serverName}/${serverVersion} (${serverMode})`);
 
 type SessionContext = {
   server: McpServer;
@@ -226,9 +228,7 @@ function runHttp(): void {
 }
 
 async function main() {
-  const mode = resolveServerMode(process.argv);
-
-  if (mode === "http") {
+  if (serverMode === "http") {
     runHttp();
     return;
   }
