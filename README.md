@@ -21,43 +21,6 @@ You can use the following environment variables to configure the MCP server.
 | CONFIGCAT_API_PASS   | &#9745;  |         | [ConfigCat Management API basic authentication password](https://app.configcat.com/my-account/public-api-credentials). |
 | CONFIGCAT_BASE_URL   |          | https://api.configcat.com | ConfigCat Management API host. |
 
-### Runtime modes
-
-The server supports two transport modes:
-
-- `mcp-server` or `mcp-server stdio`: local stdio mode (default, backwards-compatible).
-- `mcp-server http`: remote Streamable HTTP mode.
-
-### HTTP mode configuration
-
-When running in HTTP mode, set these environment variables:
-
-| Environment variable | Required | Default | Description |
-| -------------------- | -------- | ------- | ----------- |
-| MCP_HTTP_HOST |          | 127.0.0.1 | Host interface used by the HTTP server. |
-| MCP_HTTP_PORT |          | 3000 | Port used by the HTTP server. |
-| MCP_HTTP_PATH |          | /mcp | MCP endpoint path. |
-| MCP_HTTP_ALLOWED_HOSTS |          |         | Optional comma-separated hostnames for host header validation. |
-| MCP_HTTP_PUBLIC_BASE_URL |          | http://MCP_HTTP_HOST:MCP_HTTP_PORT | Public base URL used for OAuth resource metadata. |
-
-HTTP mode uses MCP Streamable HTTP transport and enforces OAuth 2.1 Bearer authentication.
-
-| Environment variable | Required | Default | Description |
-| -------------------- | -------- | ------- | ----------- |
-| MCP_OAUTH_ISSUER | &#9745; | | OAuth authorization server issuer URL. |
-| MCP_OAUTH_SCOPES | | | Optional comma-separated scopes supported by this MCP resource server. |
-| MCP_OAUTH_REQUIRED_SCOPES | | | Comma-separated scopes that every Bearer token must include. |
-| MCP_OAUTH_INTROSPECTION_CLIENT_ID | &#9745; | | Confidential resource-server client ID used to authenticate introspection, not the individual MCP client's ID. |
-| MCP_OAUTH_INTROSPECTION_CLIENT_SECRET | &#9745; | | Secret for the confidential introspection client. |
-
-### Docker
-
-The repository ships a `Dockerfile` for hosting the server in HTTP mode. Inside the container the server listens on `0.0.0.0:3000` by default.
-
-```bash
-docker build -t configcat/mcp-server .
-docker run -d -p 3000:3000 --env-file .env configcat/mcp-server
-```
 
 The instructions below show how to connect a client to the MCP server. 
 
