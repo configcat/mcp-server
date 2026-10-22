@@ -1,0 +1,29 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+pr: none
+name: $(date:yyyyMMdd)$(rev:.r)
+
+pool:
+  name: 'ConfigCat Agents'
+
+steps:
+  - task: Docker@2
+    displayName: build
+    inputs:
+      containerRegistry: Docker Hub
+      repository: "configcat/mcp-server"
+      command: build
+      buildContext: "$(System.DefaultWorkingDirectory)"
+      tags: "$(Build.BuildId)"
+
+  - task: Docker@2
+    displayName: push
+    inputs:
+      containerRegistry: Docker Hub
+      command: push
+      repository: "configcat/mcp-server"
+      buildContext: "$(System.DefaultWorkingDirectory)"
+      tags: "$(Build.BuildId)"

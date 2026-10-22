@@ -1,5 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
+import type { CallToolResult, ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
 import { z, ZodError } from "zod";
 import type { ZodRawShape } from "zod";
 import { appendQueryParams } from "../helpers/query-params.js";
@@ -2346,6 +2347,7 @@ export function registerConfigCatAPITools(
   http: HttpClient
 ): void {
   type RegisterToolConfig = Parameters<McpServer["registerTool"]>[1];
+  type RegisterToolCallback = Parameters<McpServer["registerTool"]>[2];
   for (const [toolName, toolDefinition] of toolDefinitionMap.entries()) {
     server.registerTool(
       toolName,
@@ -2353,9 +2355,9 @@ export function registerConfigCatAPITools(
         description: toolDefinition.description,
         inputSchema: toolDefinition.inputSchema,
       } as RegisterToolConfig,
-      async (toolArgs: JsonObject): Promise<CallToolResult> => {
-        return await executeApiTool(http, toolName, toolDefinition, toolArgs ?? {});
-      }
+      (async (toolArgs: JsonObject, extra: RequestHandlerExtra<ServerRequest, ServerNotification>): Promise<CallToolResult> => {
+        return await executeApiTool(http, toolName, toolDefinition, toolArgs ?? {}, extra.authInfo?.token);
+      }) as RegisterToolCallback
     );
   }
 }
@@ -2372,7 +2374,8 @@ async function executeApiTool(
   http: HttpClient,
   toolName: string,
   definition: McpToolDefinition,
-  toolArgs: JsonObject
+  toolArgs: JsonObject,
+  accessToken?: string
 ): Promise<CallToolResult> {
   try {
     // Validate arguments against the input schema
@@ -2435,7 +2438,7 @@ async function executeApiTool(
       method: method,
       headers: headers,
       ...(typeof requestBodyData !== "undefined" && { body: JSON.stringify(requestBodyData) }),
-    });
+    }, accessToken);
 
     let responseText = "";
     const ct = response.headers.get("content-type") ?? "";
