@@ -214,17 +214,18 @@ function runHttp(): void {
     console.error(`ConfigCat MCP HTTP server listening on ${httpConfig.host}:${httpConfig.port}${httpConfig.path}`);
   });
 
-  process.on("SIGINT", () => {
-    void (async () => {
-      listener.close();
-      for (const [, session] of sessions) {
-        await session.transport.close().catch(() => null);
-        await session.server.close().catch(() => null);
-      }
-      sessions.clear();
-      process.exit(0);
-    })();
-  });
+  const shutdown = async (): Promise<void> => {
+    listener.close();
+    await Promise.allSettled([...sessions.values()].map(async session => {
+      await session.transport.close().catch(() => null);
+      await session.server.close().catch(() => null);
+    }));
+    sessions.clear();
+    process.exit(0);
+  };
+
+  process.once("SIGINT", () => void shutdown());
+  process.once("SIGTERM", () => void shutdown());
 }
 
 async function main() {
