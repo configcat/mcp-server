@@ -1,6 +1,17 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpClient } from "../../src/http.js";
-import { registerConfigCatDocsTools } from "../../src/tools/configcat-docs.js";
+
+let registerConfigCatDocsTools: typeof import("../../src/tools/configcat-docs.js").registerConfigCatDocsTools;
+
+beforeEach(async () => {
+  // Each test supplies its own llms.txt content, so it needs a fresh module cache.
+  vi.resetModules();
+  ({ registerConfigCatDocsTools } = await import("../../src/tools/configcat-docs.js"));
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 type RegisterToolCallback = (args: { url: string }) => Promise<{
   content: { type: string; text: string }[];
@@ -8,6 +19,27 @@ type RegisterToolCallback = (args: { url: string }) => Promise<{
 }>;
 
 describe("registerConfigCatDocsTools", () => {
+  it("caches llms.txt for one hour and fetches it again at expiry", async () => {
+    const ttl = 60 * 60 * 1000;
+    const now = vi.spyOn(Date, "now").mockReturnValue(0);
+    const http = new HttpClient("ConfigCat MCP Test");
+    const fetch = vi.spyOn(http, "fetch").mockImplementation(() => Promise.resolve(new Response(
+      "## SDK Reference\n- [JavaScript SDK](https://configcat.com/docs/sdk-reference/js/overview.md)"
+    )));
+    const register = () => registerConfigCatDocsTools({ registerTool: vi.fn() } as never, http);
+
+    await register();
+    expect(fetch).toHaveBeenCalledOnce();
+
+    now.mockReturnValue(ttl - 1);
+    await register();
+    expect(fetch).toHaveBeenCalledOnce();
+
+    now.mockReturnValue(ttl);
+    await register();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it("downloads llms.txt, finds the JavaScript SDK URL, and returns the docs content to the LLM", async () => {
     const http = new HttpClient("ConfigCat MCP Test");
 

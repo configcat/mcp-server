@@ -1,13 +1,38 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type {
-  CallToolResult,
-} from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
+import { toMcpInputSchema } from "../helpers/zod-schema.js";
 import type { HttpClient } from "../http";
 
 const LLMS_TXT_URL = "https://configcat.com/docs/llms.txt";
+const LLMS_TXT_CACHE_TTL_MS = 60 * 60 * 1000;
 const TRUSTED_HOSTNAME = "configcat.com";
 const TRUSTED_SDK_PATH_PREFIX = "/docs/sdk-reference";
+
+let llmsTxtCache: { content: string; expiresAt: number } | undefined;
+let llmsTxtFetch: Promise<string | undefined> | undefined;
+
+async function getLlmsTxt(http: HttpClient): Promise<string | undefined> {
+  if (llmsTxtCache && Date.now() < llmsTxtCache.expiresAt) {
+    return llmsTxtCache.content;
+  }
+
+  // Share one fetch across concurrent server registrations, including refreshes.
+  llmsTxtFetch ??= (async () => {
+    const response = await http.fetch(LLMS_TXT_URL);
+    if (!response.ok) {
+      console.error(`Failed to fetch ${LLMS_TXT_URL} - HTTP ${response.status}: ${response.statusText}`);
+      return;
+    }
+
+    const content = await response.text();
+    llmsTxtCache = { content, expiresAt: Date.now() + LLMS_TXT_CACHE_TTL_MS };
+    return content;
+  })().finally(() => {
+    llmsTxtFetch = void 0;
+  });
+
+  return await llmsTxtFetch;
+}
 
 function extractMarkdownSection(content: string, sectionHeader: string): string {
   const sectionIndex = content.indexOf(sectionHeader);
@@ -79,13 +104,12 @@ async function fetchSdkDocumentation(
 }
 
 export async function registerConfigCatDocsTools(server: McpServer, http: HttpClient): Promise<void> {
-  const response = await http.fetch(LLMS_TXT_URL);
-  if (!response.ok) {
-    console.error(`Failed to fetch ${LLMS_TXT_URL} - HTTP ${response.status}: ${response.statusText}`);
+  const content = await getLlmsTxt(http);
+  if (content === void 0) {
     return;
   }
 
-  const sdkDocs = extractMarkdownSection(await response.text(), "## SDK Reference");
+  const sdkDocs = extractMarkdownSection(content, "## SDK Reference");
   if (!sdkDocs) {
     console.error(`Failed to extract SDK Reference section from ${LLMS_TXT_URL}`);
     return;
@@ -104,24 +128,22 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
     }
   }
 
-  type RegisterToolConfig = Parameters<McpServer["registerTool"]>[1];
-  type RegisterToolCallback = Parameters<McpServer["registerTool"]>[2];
   server.registerTool(
-    "update-sdk-documentation",
+    "get-sdk-documentation",
     {
       description:
     `If the user asks for coding related to a feature flag (such as integrating the ConfigCat SDK, adding a feature flag, or removing a feature flag), 
-    always call the tool "update-sdk-documentation" first to download the latest ConfigCat SDK documentation.
+    always call the tool "get-sdk-documentation" first to download the latest ConfigCat SDK documentation.
 
     1. Analyze the SDK URLs listed in the following SDK Reference list.
-    2. Then call the tool "update-sdk-documentation" with specific URL from the SDK Reference list to fetch relevant documentation page.
+    2. Then call the tool "get-sdk-documentation" with specific URL from the SDK Reference list to fetch relevant documentation page.
     
     ${sdkDocs}`,
-      inputSchema: {
+      inputSchema: toMcpInputSchema(z.object({
         url: z.string().url().describe("The URL to fetch SDK documentation from."),
-      },
-    } as RegisterToolConfig,
-    (async ({ url }: { url: string }): Promise<CallToolResult> => {
+      })),
+    },
+    async ({ url }): Promise<CallToolResult> => {
       try {
         console.error(`Fetching documentation from: ${url}`);
         const response = await fetchSdkDocumentation(url, http, allowedUrls);
@@ -156,6 +178,6 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
           isError: true,
         };
       }
-    }) as RegisterToolCallback
+    }
   );
 }

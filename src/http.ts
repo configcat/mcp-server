@@ -30,10 +30,10 @@ export class HttpClient {
   }
 
   // HTTP request with Basic auth and JSON handling
-  async request(path: string, init: RequestInit = {}): Promise<Response> {
+  async request(path: string, init: RequestInit = {}, accessToken?: string): Promise<Response> {
     const url = path.startsWith("http") ? path : `${this.baseUrl}${path}`;
     const headers = new Headers();
-    headers.set("Authorization", this.authHeader);
+    headers.set("Authorization", accessToken ? `Bearer ${accessToken}` : this.authHeader);
     headers.set("Accept", "application/json");
     headers.set("Content-Type", "application/json");
     headers.set("User-Agent", this.userAgent);
