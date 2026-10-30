@@ -1,6 +1,13 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HttpClient } from "../../src/http.js";
-import { registerConfigCatDocsTools } from "../../src/tools/configcat-docs.js";
+
+let registerConfigCatDocsTools: typeof import("../../src/tools/configcat-docs.js").registerConfigCatDocsTools;
+
+beforeEach(async () => {
+  // Each test supplies its own llms.txt content, so it needs a fresh module cache.
+  vi.resetModules();
+  ({ registerConfigCatDocsTools } = await import("../../src/tools/configcat-docs.js"));
+});
 
 type RegisterToolCallback = (args: { url: string }) => Promise<{
   content: { type: string; text: string }[];
