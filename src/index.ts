@@ -5,6 +5,7 @@ import { toNodeHandler } from "@modelcontextprotocol/node";
 import { createMcpHandler, McpServer, type OAuthMetadata } from "@modelcontextprotocol/server";
 import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { Request, Response } from "express";
+import { handleShutdown } from "./helpers/shutdown.js";
 import { verifyAccessToken } from "./helpers/token-verification.js";
 import { HttpClient } from "./http.js";
 import { getHttpServerConfig, getOAuthServerConfig, resolveServerMode } from "./runtime-config.js";
@@ -34,6 +35,8 @@ async function runStdio(): Promise<void> {
   const server = await createServer();
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  handleShutdown(() => server.close());
 }
 
 function buildOAuthMetadata(config: ReturnType<typeof getOAuthServerConfig>): OAuthMetadata {
@@ -102,28 +105,11 @@ function runHttp(): void {
     console.error(`ConfigCat MCP HTTP server listening on ${httpConfig.host}:${httpConfig.port}${httpConfig.path}`);
   });
 
-  const SHUTDOWN_TIMEOUT_MS = 10_000;
-  const shutdown = async (): Promise<void> => {
-    const forceExit = setTimeout(() => {
-      console.error("Shutdown timed out, forcing remaining connections closed");
-      listener.closeAllConnections();
-      process.exit(1);
-    }, SHUTDOWN_TIMEOUT_MS);
-    forceExit.unref();
-
-    try {
-      const drained = new Promise<void>(resolve => listener.close(() => resolve()));
-      await handler.close();
-      await drained;
-      process.exit(0);
-    } catch (err) {
-      console.error("Error during shutdown", err);
-      process.exit(1);
-    }
-  };
-
-  process.once("SIGINT", () => void shutdown());
-  process.once("SIGTERM", () => void shutdown());
+  handleShutdown(async () => {
+    const drained = new Promise<void>((resolve, reject) => listener.close(err => err ? reject(err) : resolve()));
+    await handler.close();
+    await drained;
+  }, { forceClose: () => listener.closeAllConnections() });
 }
 
 async function main() {
