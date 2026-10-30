@@ -249,7 +249,7 @@ The instructions below show how to connect a client to the MCP server.
 
 ### SDK documentation
 
-- `update-sdk-documentation` - Get comprehensive SDK documentation and code examples for seamless feature flag implementation in your project.
+- `get-sdk-documentation` - Get comprehensive SDK documentation and code examples for seamless feature flag implementation in your project.
 
 ## API Rate Limits
 

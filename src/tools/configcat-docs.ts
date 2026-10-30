@@ -129,14 +129,14 @@ export async function registerConfigCatDocsTools(server: McpServer, http: HttpCl
   }
 
   server.registerTool(
-    "update-sdk-documentation",
+    "get-sdk-documentation",
     {
       description:
     `If the user asks for coding related to a feature flag (such as integrating the ConfigCat SDK, adding a feature flag, or removing a feature flag), 
-    always call the tool "update-sdk-documentation" first to download the latest ConfigCat SDK documentation.
+    always call the tool "get-sdk-documentation" first to download the latest ConfigCat SDK documentation.
 
     1. Analyze the SDK URLs listed in the following SDK Reference list.
-    2. Then call the tool "update-sdk-documentation" with specific URL from the SDK Reference list to fetch relevant documentation page.
+    2. Then call the tool "get-sdk-documentation" with specific URL from the SDK Reference list to fetch relevant documentation page.
     
     ${sdkDocs}`,
       inputSchema: toMcpInputSchema(z.object({
