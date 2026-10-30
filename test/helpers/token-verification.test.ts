@@ -1,8 +1,8 @@
-import { InvalidTokenError, ServerError } from "@modelcontextprotocol/sdk/server/auth/errors.js";
-import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
+import { requireBearerAuth } from "@modelcontextprotocol/express";
+import { OAuthError, OAuthErrorCode } from "@modelcontextprotocol/server";
 import type { Response as ExpressResponse, Request } from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { getSessionIdentity, verifyAccessToken } from "../../src/helpers/token-verification.js";
+import { verifyAccessToken } from "../../src/helpers/token-verification.js";
 import { getOAuthServerConfig } from "../../src/runtime-config.js";
 
 const config = getOAuthServerConfig({
@@ -60,7 +60,7 @@ describe("verifyAccessToken", () => {
 
   it("rejects inactive tokens without requiring additional claims", async () => {
     mockIntrospection({ active: false });
-    await expect(verifyAccessToken("token", config, resource)).rejects.toBeInstanceOf(InvalidTokenError);
+    await expect(verifyAccessToken("token", config, resource)).rejects.toMatchObject({ code: OAuthErrorCode.InvalidToken });
   });
 
   it.each([
@@ -71,7 +71,7 @@ describe("verifyAccessToken", () => {
     { nbf: Math.floor(Date.now() / 1000) + 3600 },
   ])("rejects an unauthorized token: %j", async override => {
     mockIntrospection({ ...validPayload, ...override });
-    await expect(verifyAccessToken("token", config, resource)).rejects.toBeInstanceOf(InvalidTokenError);
+    await expect(verifyAccessToken("token", config, resource)).rejects.toMatchObject({ code: OAuthErrorCode.InvalidToken });
   });
 
   it.each([
@@ -87,7 +87,7 @@ describe("verifyAccessToken", () => {
     { ["client_id"]: void 0 },
   ])("fails closed on malformed responses: %j", async override => {
     mockIntrospection({ ...validPayload, ...override });
-    await expect(verifyAccessToken("token", config, resource)).rejects.toBeInstanceOf(ServerError);
+    await expect(verifyAccessToken("token", config, resource)).rejects.toMatchObject({ code: OAuthErrorCode.ServerError });
   });
 
   it("always returns the verified MCP resource", async () => {
@@ -104,27 +104,12 @@ describe("verifyAccessToken", () => {
 
   it.each(["TimeoutError", "TypeError"])("fails closed on fetch failure: %s", async name => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new DOMException("sensitive details", name)));
-    await expect(verifyAccessToken("token", config, resource)).rejects.toBeInstanceOf(ServerError);
+    await expect(verifyAccessToken("token", config, resource)).rejects.toMatchObject({ code: OAuthErrorCode.ServerError });
   });
 
   it("fails closed on invalid JSON", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("not JSON")));
-    await expect(verifyAccessToken("token", config, resource)).rejects.toBeInstanceOf(ServerError);
-  });
-});
-
-describe("getSessionIdentity", () => {
-  it("allows token refresh but distinguishes subjects, issuers and clients", async () => {
-    mockIntrospection(validPayload);
-    const auth = await verifyAccessToken("old-token", config, resource);
-    const identity = getSessionIdentity(auth);
-    expect(identity).toBeDefined();
-    expect(getSessionIdentity({ ...auth, token: "new-token" })).toBe(identity);
-    expect(getSessionIdentity({ ...auth, clientId: "client-b" })).not.toBe(identity);
-    expect(getSessionIdentity({ ...auth, extra: { ...auth.extra, subject: "user-b" } })).not.toBe(identity);
-    expect(getSessionIdentity({ ...auth, extra: { ...auth.extra, issuer: "other-issuer" } })).not.toBe(identity);
-    expect(getSessionIdentity(void 0)).toBeUndefined();
-    expect(getSessionIdentity({ ...auth, extra: {} })).toBeUndefined();
+    await expect(verifyAccessToken("token", config, resource)).rejects.toBeInstanceOf(OAuthError);
   });
 });
 
@@ -151,7 +136,7 @@ describe("HTTP bearer authentication", () => {
     await middleware(request, response as unknown as ExpressResponse, next);
     if (status === null) {
       expect(next).toHaveBeenCalledOnce();
-      expect(getSessionIdentity(request.auth)).toBeDefined();
+      expect(request.auth).toMatchObject({ token: "token", clientId: "client-a" });
     } else {
       expect(response.status).toHaveBeenCalledWith(status);
       expect(next).not.toHaveBeenCalled();

@@ -1,16 +1,11 @@
 #!/usr/bin/env node
 
-import { requireBearerAuth } from "@modelcontextprotocol/sdk/server/auth/middleware/bearerAuth.js";
-import { getOAuthProtectedResourceMetadataUrl, mcpAuthMetadataRouter } from "@modelcontextprotocol/sdk/server/auth/router.js";
-import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import type { OAuthMetadata } from "@modelcontextprotocol/sdk/shared/auth.js";
-import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
+import { createMcpExpressApp, getOAuthProtectedResourceMetadataUrl, mcpAuthMetadataRouter, requireBearerAuth } from "@modelcontextprotocol/express";
+import { toNodeHandler } from "@modelcontextprotocol/node";
+import { createMcpHandler, McpServer, type OAuthMetadata } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 import type { Request, Response } from "express";
-import { randomUUID } from "node:crypto";
-import { getSessionIdentity, verifyAccessToken } from "./helpers/token-verification.js";
+import { verifyAccessToken } from "./helpers/token-verification.js";
 import { HttpClient } from "./http.js";
 import { getHttpServerConfig, getOAuthServerConfig, resolveServerMode } from "./runtime-config.js";
 import { registerConfigCatAPITools } from "./tools/configcat-api.js";
@@ -22,12 +17,6 @@ const serverVersion = "0.1.11";
 const serverMode = resolveServerMode(process.argv);
 
 const http = new HttpClient(`${serverName}/${serverVersion} (${serverMode})`);
-
-type SessionContext = {
-  server: McpServer;
-  transport: StreamableHTTPServerTransport;
-  identity: string;
-};
 
 async function createServer(): Promise<McpServer> {
   const server = new McpServer(
@@ -99,115 +88,14 @@ function runHttp(): void {
     resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(httpConfig.endpointUrl),
   });
 
-  const sessions = new Map<string, SessionContext>();
-
-  app.post(httpConfig.path, authMiddleware, async (req: Request, res: Response) => {
-    try {
-      const sessionIdHeader = req.header("mcp-session-id");
-      const parsedBody = req.body as unknown;
-
-      if (sessionIdHeader) {
-        const existing = sessions.get(sessionIdHeader);
-        if (!existing || existing.identity !== getSessionIdentity(req.auth)) {
-          res.status(404).send("Session not found.");
-          return;
-        }
-
-        await existing.transport.handleRequest(req, res, parsedBody);
-        return;
-      }
-
-      if (!isInitializeRequest(parsedBody)) {
-        res.status(400).json({
-          jsonrpc: "2.0",
-          error: {
-            code: -32000,
-            message: "Bad Request: Missing or invalid MCP session ID.",
-          },
-          id: null,
-        });
-        return;
-      }
-
-      const identity = getSessionIdentity(req.auth);
-      if (!identity) {
-        res.status(401).send("Missing authenticated session identity.");
-        return;
-      }
-
-      const server = await createServer();
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => randomUUID(),
-        onsessioninitialized: sessionId => {
-          sessions.set(sessionId, { server, transport, identity });
-        },
-      });
-
-      transport.onclose = () => {
-        const sid = transport.sessionId;
-        if (sid) {
-          sessions.delete(sid);
-        }
-
-        void server.close();
-      };
-
-      await server.connect(transport);
-      await transport.handleRequest(req, res, parsedBody);
-    } catch (error) {
-      console.error("Error handling MCP POST request", error);
-      if (!res.headersSent) {
-        res.status(500).json({
-          jsonrpc: "2.0",
-          error: {
-            code: -32603,
-            message: "Internal server error.",
-          },
-          id: null,
-        });
-      }
-    }
-  });
-
-  const handleSessionRequest = async (req: Request, res: Response): Promise<void> => {
-    const sessionIdHeader = req.header("mcp-session-id");
-    const parsedBody = req.body as unknown;
-
-    if (!sessionIdHeader) {
-      console.error("Missing MCP session ID.");
-      res.status(400).send("Missing MCP session ID.");
-      return;
-    }
-
-    const existing = sessions.get(sessionIdHeader);
-    if (!existing || existing.identity !== getSessionIdentity(req.auth)) {
-      res.status(404).send("Session not found.");
-      return;
-    }
-
-    await existing.transport.handleRequest(req, res, parsedBody);
+  const onerror = (error: Error): void => {
+    console.error("Error handling MCP request", error);
   };
+  const handler = createMcpHandler(createServer, { onerror });
+  const nodeHandler = toNodeHandler(handler, { onerror });
 
-  app.get(httpConfig.path, authMiddleware, async (req: Request, res: Response) => {
-    try {
-      await handleSessionRequest(req, res);
-    } catch (error) {
-      console.error("Error handling MCP GET request", error);
-      if (!res.headersSent) {
-        res.status(500).send("Internal server error.");
-      }
-    }
-  });
-
-  app.delete(httpConfig.path, authMiddleware, async (req: Request, res: Response) => {
-    try {
-      await handleSessionRequest(req, res);
-    } catch (error) {
-      console.error("Error handling MCP DELETE request", error);
-      if (!res.headersSent) {
-        res.status(500).send("Internal server error.");
-      }
-    }
+  app.all(httpConfig.path, authMiddleware, (req: Request, res: Response) => {
+    void nodeHandler(req, res, req.body as unknown);
   });
 
   const listener = app.listen(httpConfig.port, httpConfig.host, () => {
@@ -215,13 +103,15 @@ function runHttp(): void {
   });
 
   const shutdown = async (): Promise<void> => {
-    listener.close();
-    await Promise.allSettled([...sessions.values()].map(async session => {
-      await session.transport.close().catch(() => null);
-      await session.server.close().catch(() => null);
-    }));
-    sessions.clear();
-    process.exit(0);
+    try {
+      const drained = new Promise<void>(resolve => listener.close(() => resolve()));
+      await handler.close();
+      await drained;
+      process.exit(0);
+    } catch (err) {
+      console.error("Error during shutdown", err);
+      process.exit(1);
+    }
   };
 
   process.once("SIGINT", () => void shutdown());
