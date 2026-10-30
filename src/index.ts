@@ -102,7 +102,15 @@ function runHttp(): void {
     console.error(`ConfigCat MCP HTTP server listening on ${httpConfig.host}:${httpConfig.port}${httpConfig.path}`);
   });
 
+  const SHUTDOWN_TIMEOUT_MS = 10_000;
   const shutdown = async (): Promise<void> => {
+    const forceExit = setTimeout(() => {
+      console.error("Shutdown timed out, forcing remaining connections closed");
+      listener.closeAllConnections();
+      process.exit(1);
+    }, SHUTDOWN_TIMEOUT_MS);
+    forceExit.unref();
+
     try {
       const drained = new Promise<void>(resolve => listener.close(() => resolve()));
       await handler.close();
