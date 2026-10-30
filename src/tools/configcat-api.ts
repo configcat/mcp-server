@@ -1,9 +1,8 @@
-import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol.js";
-import type { CallToolResult, ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types.js";
+import type { CallToolResult, McpServer } from "@modelcontextprotocol/server";
 import { z, ZodError } from "zod";
 import type { ZodRawShape } from "zod";
 import { appendQueryParams } from "../helpers/query-params.js";
+import { toMcpInputSchema } from "../helpers/zod-schema.js";
 import type { HttpClient } from "../http";
 
 // Type definition for JSON objects
@@ -2346,18 +2345,16 @@ export function registerConfigCatAPITools(
   server: McpServer,
   http: HttpClient
 ): void {
-  type RegisterToolConfig = Parameters<McpServer["registerTool"]>[1];
-  type RegisterToolCallback = Parameters<McpServer["registerTool"]>[2];
   for (const [toolName, toolDefinition] of toolDefinitionMap.entries()) {
     server.registerTool(
       toolName,
       {
         description: toolDefinition.description,
-        inputSchema: toolDefinition.inputSchema,
-      } as RegisterToolConfig,
-      (async (toolArgs: JsonObject, extra: RequestHandlerExtra<ServerRequest, ServerNotification>): Promise<CallToolResult> => {
-        return await executeApiTool(http, toolName, toolDefinition, toolArgs ?? {}, extra.authInfo?.token);
-      }) as RegisterToolCallback
+        inputSchema: toMcpInputSchema(z.object(toolDefinition.inputSchema)),
+      },
+      async (toolArgs, ctx): Promise<CallToolResult> => {
+        return await executeApiTool(http, toolName, toolDefinition, toolArgs, ctx.http?.authInfo?.token);
+      }
     );
   }
 }
