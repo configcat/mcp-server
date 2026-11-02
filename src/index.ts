@@ -16,13 +16,21 @@ const serverName = "ConfigCat MCP";
 const serverVersion = "0.2.0";
 
 const serverMode = resolveServerMode(process.argv);
+const serverInstructions = `Feature Flag & Setting value tools come in two variants. Choose by the Config's evaluationVersion:
+- "v1": get-setting-value, update-setting-value, replace-setting-value, get-setting-values, post-setting-values
+- "v2": get-setting-value-v2, update-setting-value-v2, replace-setting-value-v2, get-setting-values-v2, post-setting-values-v2
+
+Before the first value call for a Config, read evaluationVersion with get-config (if you only have a settingId, call get-setting first to get the configId). Reuse the result for that Config. Never mix variants.`;
 
 const http = new HttpClient(`${serverName}/${serverVersion} (${serverMode})`);
 
 async function createServer(): Promise<McpServer> {
   const server = new McpServer(
     { name: serverName, version: serverVersion },
-    { capabilities: { tools: {} } }
+    {
+      capabilities: { tools: {} },
+      instructions: serverInstructions,
+    }
   );
 
   registerConfigCatAPITools(server, http);
