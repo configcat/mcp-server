@@ -13,7 +13,7 @@ import { registerConfigCatAPITools } from "./tools/configcat-api.js";
 import { registerConfigCatDocsTools } from "./tools/configcat-docs.js";
 
 const serverName = "ConfigCat MCP";
-const serverVersion = "0.2.0";
+const serverVersion = "0.2.1";
 
 const serverMode = resolveServerMode(process.argv);
 const serverInstructions = `Feature Flag & Setting value tools come in two variants. Choose by the Config's evaluationVersion:
